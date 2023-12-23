@@ -126,9 +126,9 @@ void *connection_handler(void *socket_desc)
             }
             else{
                 memset(client_message,sizeof(client_message),'\0');
-            strcpy(client_message,"Identified command: ");
+            //strcpy(client_message,"Identified command: ");
             //printf("ooooo %s\n",Comm.converted.argv[0]);
-            strcat(client_message, Comm.converted.argv[0]);
+            strcpy(client_message, first_response[Comm.type]);
             strcat(client_message, "\n");
             }
             printf("[server] Identified type %d> %s\n",Comm.type,Comm.converted.argv[0]);
