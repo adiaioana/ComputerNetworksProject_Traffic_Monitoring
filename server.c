@@ -117,8 +117,10 @@ void *connection_handler(void *socket_desc)
 	while((n=recv(sock,client_message,2000,0))>0)
     {
 		int code=parse(client_message,argcomm);
-        if(code==0)
+        if(code==0) {
             strcpy(client_message,"Invalid command\n");
+            Comm.type=-1;
+           }
         else{
             code=assign_commandtype(&Comm,argcomm);
             if(code==0 || Comm.type==-1) {
@@ -129,13 +131,22 @@ void *connection_handler(void *socket_desc)
             //strcpy(client_message,"Identified command: ");
             //printf("ooooo %s\n",Comm.converted.argv[0]);
             strcpy(client_message, first_response[Comm.type]);
-            strcat(client_message, "\n");
             }
             printf("[server] Identified type %d> %s\n",Comm.type,Comm.converted.argv[0]);
             
             //printf("ooooo %s\n",client_message);
         }
-		send(sock,client_message,strlen(client_message),0);
+	send(sock,client_message,strlen(client_message),0);
+	if(Comm.type>=1) // register: Server has to send SQL query to the database
+	{
+		if((n=recv(sock,client_message,2000,0))>0) {
+			// received SQL query
+			printf("[server] Received SQL query> %s\n", client_message);
+		}
+		else{
+		// didn't receive anything > weird behaviour
+		}
+	}
     }
     close(sock);
 
