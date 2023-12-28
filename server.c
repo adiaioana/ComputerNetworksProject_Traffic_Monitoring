@@ -3,12 +3,14 @@
 #include<stdlib.h>    
 #include<sys/socket.h>
 #include<arpa/inet.h> 
+#include <sqlite3.h> 
 #include<unistd.h>    
 #include<pthread.h> 
 #include "string_messages.h"
 #include "stri.h"
 #define PORT 3000
 
+sqlite3* USERSDB; 
 struct command_arguments{
 	int nr_arg;
 	char argv[110][110];
@@ -18,6 +20,9 @@ struct command{
     command_arguments converted;
 };
 
+int sql_query_for_users();
+inline void open_DBs();
+inline void close_DBs();
 void *connection_handler(void *);
 struct sockaddr_in server;
 int server_config();
@@ -29,6 +34,7 @@ int main(int argc , char *argv[])
     int client_sock , c , *new_sock;
     struct sockaddr_in client;
 	int socket_desc=server_config();
+	open_DBs();
     int optval=1; 
     setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR,&optval,sizeof(optval));
 
@@ -59,7 +65,8 @@ int main(int argc , char *argv[])
 
         puts("[server] Handler assigned");
     }
-
+    
+    close_DBs();
     if (client_sock < 0)
     {
         perror("[server] accept failed");
@@ -136,7 +143,8 @@ void *connection_handler(void *socket_desc)
             
             //printf("ooooo %s\n",client_message);
         }
-	send(sock,client_message,strlen(client_message),0);
+	send(sock,client_message,strlen(client_message),0);/*
+	flag: to be implemented
 	if(Comm.type>=1) // register: Server has to send SQL query to the database
 	{
 		if((n=recv(sock,client_message,2000,0))>0) {
@@ -146,7 +154,7 @@ void *connection_handler(void *socket_desc)
 		else{
 		// didn't receive anything > weird behaviour
 		}
-	}
+	}*/
     }
     close(sock);
 
@@ -172,4 +180,20 @@ int server_config(){
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons( PORT );
 	return socket_desc;
+}
+
+int sql_query_for_users() {
+     
+}
+
+inline void open_DBs() { //flag> to add the rest DBs
+  int exit = 0; 
+  exit = sqlite3_open("users.csv", &USERSDB); 
+  if (exit) { 
+        printf("Error open DB %d\n",sqlite3_errmsg(USERSDB));
+       // return (-1); 
+  }
+}
+inline void close_DBs() { //flag> to add the rest DBs
+  sqlite3_close(USERSDB); 
 }

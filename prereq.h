@@ -2,6 +2,7 @@
 	For basic functions such as int_to_string, etc.
 **/
 #include <stdio.h>
+#include <sqlite3.h> 
 #include <string.h>
 #define MAX_CH_ON_LINE 100
 
@@ -17,7 +18,23 @@ void read_line(char *buffer)
     		buffer[i] = ch;
 	buffer[i]='\0';
 }
-
+int notyesorno(char *str_source){
+  char straux[220];
+  strcpy(straux,str_source);
+  if(strchr(straux,'Y')==NULL or strchr(straux,'n')==NULL)
+    return 0;
+  int nY=0, nn=0; int lgaux=strlen(straux);
+  for(int j=0; j<lgaux; ++j)
+    if(straux[j]=='Y')
+      nY++;
+    else if(straux[j]=='n')
+      nn++;
+    else if(isalpha(straux[j]) or isdigit(straux[j]))
+      return 0;
+    if(nn+nY!=1)
+      return 0;
+    return 1;
+}
 //debug?? maybe ca returneaza un pointer poate da aiurea
 int Contains_Any_Chars_From(char * str_source, char *str_tokens) {
 	int how_many_tokens=strlen(str_tokens);
