@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <deque>
 #include <string>
 #include <pthread.h>
 #include <time.h>
@@ -25,11 +26,12 @@ int cli_sock; int id;
 
 int THE_END;
 
-pthread_mutex_t auth_lock;
+pthread_mutex_t auth_lock, event_lock;
 int IS_AUTH;
 bool password_test(char* pass);
 void* command_thread(void * arg);
 void* main_thread(void * arg);
+void* events_thread(void * arg);
 
 int main()
 {
@@ -51,9 +53,12 @@ int main()
     
     printf("[client] Creating thread for handling commands... \n");
     pthread_create(&cli_thread[0],NULL, command_thread,(void *)cli_th);
-    pthread_create(&cli_thread[1],NULL, main_thread,(void *)cli_th);
+    //pthread_create(&cli_thread[1],NULL, main_thread,(void *)cli_th);
+    pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
     
     pthread_join(cli_thread[0], NULL); 
+    pthread_join(cli_thread[2], NULL); 
+    //pthread_join(cli_thread[1], NULL); 
     pthread_exit(NULL); 
     pthread_mutex_destroy(&auth_lock);
     close(sock_desc);
@@ -71,12 +76,30 @@ void* main_thread(void * arg) {
         int nraux=rand()%120; //flag: query to server to be implemented
         snprintf(mess,sizeof(mess),"\n[client][main] Your speed[km/h] is:%d", nraux);
         printf("%s", mess);
-        //printf("\r", nraux);
         fflush(stdout);
         sleep(1);
       }
     }
     printf("\n[client][main] Application exited! See you later! \n");
+}
+
+void* events_thread(void * arg)
+{
+    info_for_threads * cli_th=(info_for_threads *)arg;
+    char sbuff[MAX_SIZE],rbuff[MAX_SIZE];
+    int sock_desc=cli_th->cli_sock;
+    int vizevent[100]={0};
+    printf("[client][event] Reading from server:\n");
+    while(1) {
+      //flag: to add update
+      for(auto it: events_list) 
+        if(!viz[it.idevent]) {
+        viz[it.idevent]=1;
+        printf("[client][event] Traffic event reported:\n%s", it.message);
+        }
+        if(THE_END)
+          break;
+    }
 }
 
 void* command_thread(void * arg)
@@ -101,6 +124,8 @@ void* command_thread(void * arg)
 		}
 		else if(strcmp(rbuff,first_response[3])==0)
 			LOGOUT_REQUEST(sock_desc, &IS_AUTH, &auth_lock);
+		else if(strcmp(rbuff,first_response[4]==0) //report event
+		        REPORT_EVENT(sock_desc, &event_lock);
 		else printf("[client][command] Not solved yet");
         }
         bzero(rbuff,MAX_SIZE);

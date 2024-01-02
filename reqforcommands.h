@@ -8,8 +8,16 @@
 #include <string.h>
 #include <sqlite3.h> 
 #include "prereq.h"
+#include <deque>
 #define MAX_CH_ON_LINE 100
-
+int NO_EVENTS;
+struct event{
+char message[250];
+int start;
+int idevent;
+int lifetime;
+};
+deque <event> events_list;
 
 struct info_for_user{
 	int iduser;	
@@ -78,12 +86,15 @@ inline void REGISTRATION_FORM(int socket_desc) {
 	
 	USR.iduser=rand()%1000000;
 	printf("[client][command] %d este ID", USR.iduser);
-	/* flag: something doesn't work with the send query
-	char parameters[210], insert_query[350];
-	memset(parameters, sizeof(parameters), '\0');
-	memset(insert_query, sizeof(insert_query), '\0');
-	printf("%d este %s\n", USR.iduser, int_to_string(USR.iduser));
-	strcat(parameters, int_to_string(USR.iduser)); strcat (parameters,",");
+	/* flag: something doesn't work with the send query*/
+	char parameters[510], insert_query[550];
+	parameters[0]='\0'; insert_query[0]='\0';
+	//memset(parameters, sizeof(parameters)-1, '\0');
+	//memset(insert_query, sizeof(insert_query)-1, '\0');
+	char id_user_str[20];
+	int_to_string(USR.iduser,id_user_str);
+	//printf("%d este %s\n", USR.iduser, id_user_str);
+	strcat(parameters, id_user_str); strcat (parameters,",");
 	strcat(parameters, USR.First_Name); strcat (parameters,",");
 	strcat(parameters, USR.Surname); strcat (parameters,",");
 	strcat(parameters, USR.username); strcat (parameters,",");
@@ -91,9 +102,11 @@ inline void REGISTRATION_FORM(int socket_desc) {
 	strcat(parameters, "NULL"); strcat (parameters,","); // flag: to be modified for subscriptions
 	strcat(parameters, "NULL"); strcat (parameters,","); // flag: to be modified for subscriptions
 	strcat(parameters, "NULL");  // flag: to be modified for subscriptions
-	sprintf(insert_query, "INSERT INTO Users VALUES('%s')", parameters);
-	printf("[client] Sending the following query> %s\n",insert_query);
-	//send(socket_desc,insert_query,strlen(insert_query),0);*/
+	strcat(insert_query, "INSERT INTO Users VALUES('");
+	strcat(insert_query,parameters);
+	strcat(insert_query,"');");
+	printf("[client][command] Sending the following query> %s\n",insert_query);
+	send(socket_desc,insert_query,strlen(insert_query),0);
 }
 
 inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel) {
@@ -106,7 +119,7 @@ inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacate
         }
         else {
         printf("[client][command] For logging in, your username and password are required...\n");
-        printf("\nY[client][command] our username: ");
+        printf("\n[client][command] Your username: ");
 	read_line(line);
 	strcpy(USR.username,line);
 	printf("\n[client][command] Your password: ");
@@ -120,20 +133,66 @@ inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacate
 	!isalpha(USR.username[0]) ) {
 	      printf("[client][command] Not logged in! (found invalid characters in username)\n");
 	      *token=0;
+	char query[310];
+	query[0]='\0';
+	strcpy(query,"Invalid");
+	send(socket_desc,query,strlen(query),0);
 	}
-	
 	else if(password_test(USR.password)) {
 		printf("[client][command] Not logged in! (found invalid characters in username)\n");
 		*token=0;
+	char query[310];
+	query[0]='\0';
+	strcpy(query,"Invalid");
+	send(socket_desc,query,strlen(query),0);
 	}
 	else{
-        //flag: SQL query
+	char query[310];
+	query[0]='\0';
+	strcpy(query,"SELECT * FROM Users WHERE username='");
+	strcat(query, USR.username);
+	strcat(query,"' AND password='");
+	strcat(query, USR.password);
+	strcat(query,"';");
+	send(socket_desc,query,strlen(query),0);
+	
         }
         pthread_mutex_unlock(lacatel);
 	}
         //flag: to implement SQL query + sending to server
 }
 
+inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel) {
+  
+      pthread_mutex_lock(lacatel);
+      printf("[client][command] What type of event do you want to report?\n\t1 - accident\n\t2-police control\n\t3 - traffic jam\n");
+      int nr;
+      scanf("%d",nr);
+      while(nr<1 || nr>3) {
+      printf("\n[client][command]Please enter an input from 1 to 3.\n); 
+      printf("[client][command] What type of event do you want to report?\n\t1 - accident\n\t2-police control\n\t3 - traffic jam\n"); scanf("%d",nr);
+      }
+      
+      event auxevent;
+      char auxmes[200], loc[200];
+      auxmes[0]='\0'; loc[0]='\0';
+      switch(nr) {
+      case 1: strcat(auxmes, "Detected an accident on "); break;
+      case 2: strcat(auxmes, "Detected a police control on ");break;
+      case 3: strcat(auxmes, "Detected a traffic jam on ");break;
+      case default: break;
+      }
+      printf("\n[client][command]Please enter the location of the traffic event>");
+      scanf("%s", loc);
+      strcat(auxmes,loc);
+      strcpy(auxevent.message,auxmes);
+      auxevent.idevent=++NO_EVENTS;
+      auxevent.start=0;
+      auxevent.lifetime=100000000;
+      
+      add_event(auxevent);
+      pthread_mutex_unlock(lacatel);
+}
 inline void LOGOUT_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel) {
       
       pthread_mutex_lock(lacatel);
@@ -144,4 +203,13 @@ inline void LOGOUT_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacat
       else
         printf("[client][command] Not logged in: Error\n");
       pthread_mutex_unlock(lacatel);
+}
+
+void add_event(event A){
+  events_list.push_back(A);
+  update_events(A.start);
+}
+void update_events(int rightnow) {
+while(!events_list.empty() && (events_list.front().start+events_list.front().lifetime)>rightnow)
+    events_list.pop_front();
 }

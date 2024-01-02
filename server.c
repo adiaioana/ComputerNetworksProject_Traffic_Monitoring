@@ -143,18 +143,18 @@ void *connection_handler(void *socket_desc)
             
             //printf("ooooo %s\n",client_message);
         }
-	send(sock,client_message,strlen(client_message),0);/*
-	flag: to be implemented
-	if(Comm.type>=1) // register: Server has to send SQL query to the database
+	send(sock,client_message,strlen(client_message),0);
+	if(Comm.type==1 || Comm.type==2) // register: Server has to send SQL query to the database
 	{
 		if((n=recv(sock,client_message,2000,0))>0) {
 			// received SQL query
 			printf("[server] Received SQL query> %s\n", client_message);
 		}
 		else{
+		printf("[server][error] Didn't receive SQL query from client!!!");
 		// didn't receive anything > weird behaviour
 		}
-	}*/
+	}/**/
     }
     close(sock);
 

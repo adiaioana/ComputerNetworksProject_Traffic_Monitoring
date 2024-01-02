@@ -70,19 +70,22 @@ bool password_test(char* pass) {
 	
 	return 0;
 }
-char* int_to_string(int x) {
-
-	char p[20];
-	memset(p,sizeof(p),'\0');
+void int_to_string(int x, char *q) {
+        char p[20];
+        int init_val=x;
+        p[0]='\0';
 	int lg=0;
 	if(x==0) {
 	p[0]='0';
-	return p;
+	strcpy(q,p);
+	printf("[hihi]%d is %s[hihi]",init_val, p);
+	return ;
 	}
 	
 	while(x) {
 	p[lg++]=x%10+'0';
 	p[lg]='\0';
+	x=x/10;
 	}
 	
 	int i=0, j=lg-1;
@@ -92,6 +95,6 @@ char* int_to_string(int x) {
 		p[j]=aux;
 		i++; j--;
 	}
-	
-	return p;
+	printf("[hihi]%d is %s[hihi]",init_val, p);
+	strcpy(q,p);
 }
