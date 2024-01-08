@@ -3,11 +3,15 @@
 	1. REGISTRATION_FORM: used to get username, pass, full name and sends SQL query to server
 	2. LOGIN_REQUEST: reads username, pass => sends SQL query to server 
 	3. LOGOUT_REQUEST: logs out if logged in
+	4. REPORT_EVENT: reports event
+	5. GET_EVENT: get events info
 **/
 #include <stdio.h>
 #include <string.h>
 #include <sqlite3.h> 
+#include <iterator>
 #include "prereq.h"
+#include "stri.h"
 #include <deque>
 #define MAX_CH_ON_LINE 100
 int NO_EVENTS;
@@ -17,7 +21,7 @@ int start;
 int idevent;
 int lifetime;
 };
-deque <event> events_list;
+std:: deque <event> events_list;
 
 struct info_for_user{
 	int iduser;	
@@ -28,9 +32,12 @@ struct info_for_user{
 	int subscriptions[3]; // flag: to be modified later
 }; 
  
-inline void REGISTRATION_FORM(int socket_desc) {
+inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* response_lacatel) {
+        pthread_mutex_lock(response_lacatel);
 	char line[MAX_CH_ON_LINE];
 	info_for_user USR;
+	strcpy(response,server_comm_coding[1]);
+	strcat(response,"|");
 	printf("\n[client][command] Your First Name: ");
 	read_line(line);
 	strcpy(USR.First_Name,line);
@@ -105,19 +112,18 @@ inline void REGISTRATION_FORM(int socket_desc) {
 	strcat(insert_query, "INSERT INTO Users VALUES('");
 	strcat(insert_query,parameters);
 	strcat(insert_query,"');");
-	printf("[client][command] Sending the following query> %s\n",insert_query);
-	send(socket_desc,insert_query,strlen(insert_query),0);
+	strcat(response,insert_query);
+	printf("[client][command] Sending the following response> %s\n",response);
+	//send(socket_desc,insert_query,strlen(insert_query),0);
+        pthread_mutex_unlock(response_lacatel);
 }
 
-inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel) {
-
+inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+      
+	char query[310];
+	query[0]='\0';
 	char line[MAX_CH_ON_LINE];
 	info_for_user USR;
-	pthread_mutex_lock(lacatel);
-        if(*token) {
-          printf("[client][command] User already logged in, for logging in another user, log out first\n");
-        }
-        else {
         printf("[client][command] For logging in, your username and password are required...\n");
         printf("\n[client][command] Your username: ");
 	read_line(line);
@@ -126,52 +132,68 @@ inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacate
 	read_line(line);
 	strcpy(USR.password,line);
 	
-	*token=0;
-	
 	if(strlen(USR.username)==0 || 
 	Contains_Any_Chars_From(USR.username,"!@#$%^&*()`~':;|[]<>,.+=") || 
 	!isalpha(USR.username[0]) ) {
 	      printf("[client][command] Not logged in! (found invalid characters in username)\n");
-	      *token=0;
-	char query[310];
-	query[0]='\0';
 	strcpy(query,"Invalid");
-	send(socket_desc,query,strlen(query),0);
+	
 	}
 	else if(password_test(USR.password)) {
 		printf("[client][command] Not logged in! (found invalid characters in username)\n");
-		*token=0;
-	char query[310];
-	query[0]='\0';
 	strcpy(query,"Invalid");
-	send(socket_desc,query,strlen(query),0);
+	
 	}
 	else{
-	char query[310];
-	query[0]='\0';
 	strcpy(query,"SELECT * FROM Users WHERE username='");
 	strcat(query, USR.username);
 	strcat(query,"' AND password='");
 	strcat(query, USR.password);
 	strcat(query,"';");
-	send(socket_desc,query,strlen(query),0);
-	
+	printf("[client][command] Sending query %s\n",query);
         }
-        pthread_mutex_unlock(lacatel);
-	}
+	
+        pthread_mutex_lock(response_lacatel);
+	strcpy(response,server_comm_coding[2]);
+	strcat(response,"|");
+	strcat(response,USR.username);
+	strcat(response,"|");
+	strcat(response,query);
+        pthread_mutex_unlock(response_lacatel);
+	
         //flag: to implement SQL query + sending to server
 }
 
-inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel) {
-  
+void update_events(int rightnow) {
+while(!events_list.empty() && (events_list.front().start+events_list.front().lifetime)>rightnow)
+    events_list.pop_front();
+}
+
+void add_event(event A){
+  events_list.push_back(A);
+ //bonus: update_events(A.start);
+}
+
+inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+    
+      
+      char line[MAX_CH_ON_LINE];
+      line[0]='\0';
+      memset(line, MAX_CH_ON_LINE-1, '\0');
+      
       pthread_mutex_lock(lacatel);
-      printf("[client][command] What type of event do you want to report?\n\t1 - accident\n\t2-police control\n\t3 - traffic jam\n");
+      printf("[client][command] What type of event do you want to report?\n\t1 - accident\n\t2 - police control\n\t3 - traffic jam\n");
       int nr;
-      scanf("%d",nr);
+      read_line(line);
+      string_to_int(line, nr);
       while(nr<1 || nr>3) {
-      printf("\n[client][command]Please enter an input from 1 to 3.\n); 
-      printf("[client][command] What type of event do you want to report?\n\t1 - accident\n\t2-police control\n\t3 - traffic jam\n"); scanf("%d",nr);
+      printf("\n[client][command]Please enter an input from 1 to 3.\n"); 
+      printf("[client][command] What type of event do you want to report?\n\t1 - accident\n\t2-police control\n\t3 - traffic jam\n");
+      
+      read_line(line);
+      string_to_int(line, nr);
       }
+      //printf("[client][command] The nr is %d\n", nr);
       
       event auxevent;
       char auxmes[200], loc[200];
@@ -180,36 +202,41 @@ inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel) {
       case 1: strcat(auxmes, "Detected an accident on "); break;
       case 2: strcat(auxmes, "Detected a police control on ");break;
       case 3: strcat(auxmes, "Detected a traffic jam on ");break;
-      case default: break;
       }
+      ///
       printf("\n[client][command]Please enter the location of the traffic event>");
-      scanf("%s", loc);
+      //scanf("%[^\n]s", line);
+      read_line(line);
+      strcpy(loc,line);
       strcat(auxmes,loc);
       strcpy(auxevent.message,auxmes);
       auxevent.idevent=++NO_EVENTS;
-      auxevent.start=0;
-      auxevent.lifetime=100000000;
+      auxevent.start=0; //bonus: to be modified
+      auxevent.lifetime=100000000; //bonus: to be modified
+      printf("\n[client][command] Final message is...%s", auxmes);
       
-      add_event(auxevent);
+      pthread_mutex_lock(response_lacatel);
+      strcpy(response,server_comm_coding[4]);
+      strcat(response,"|");
+      strcat(response,auxmes);
+      pthread_mutex_unlock(response_lacatel);
+      //add_event(auxevent);
       pthread_mutex_unlock(lacatel);
 }
-inline void LOGOUT_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel) {
+inline void LOGOUT_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
       
       pthread_mutex_lock(lacatel);
-      *token=0;
-      if(*token) {
-        printf("[client][command] Logging out.\n");
-      }
-      else
-        printf("[client][command] Not logged in: Error\n");
+      pthread_mutex_lock(response_lacatel);
+      strcpy(response,server_comm_coding[3]);
+      pthread_mutex_unlock(response_lacatel);
       pthread_mutex_unlock(lacatel);
 }
+inline void GET_EVENTS(int socket_desc, pthread_mutex_t * lacatel,char* response, pthread_mutex_t* response_lacatel) {
+//flag> de pus lacatelu
+      pthread_mutex_lock(lacatel);
+      pthread_mutex_lock(response_lacatel);
+      strcpy(response,server_comm_coding[5]);
+      pthread_mutex_unlock(response_lacatel);
+      pthread_mutex_unlock(lacatel);
 
-void add_event(event A){
-  events_list.push_back(A);
-  update_events(A.start);
-}
-void update_events(int rightnow) {
-while(!events_list.empty() && (events_list.front().start+events_list.front().lifetime)>rightnow)
-    events_list.pop_front();
 }

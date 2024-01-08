@@ -98,3 +98,16 @@ void int_to_string(int x, char *q) {
 	printf("[hihi]%d is %s[hihi]",init_val, p);
 	strcpy(q,p);
 }
+
+void string_to_int(char *p, int &opa) {
+  opa=0;
+  int lgaux=strlen(p);
+  for(int i=0; i<lgaux; ++i)
+    if(p[i]>='0' && p[i]<='9') {
+      for(int j=i; j<lgaux; ++j)
+        if(p[j]>='0' && p[j]<='9')
+          opa=opa*10+(p[j]-'0');
+        else break;
+      break;
+      }
+}

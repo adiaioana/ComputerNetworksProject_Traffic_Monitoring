@@ -75,55 +75,19 @@ int main(int argc , char *argv[])
     return 0;
 }
 
-
-
-
-short assign_commandtype(command *C,command_arguments who)
-{
-    C->converted=who;
-    C->type=-1;
-    for(int j=1; j<=number_of_command_strings; j++) {
-       // printf("comparing %s with %s\n", who.argv[0], command_strings[j]);
-
-        if(strcmp(who.argv[0],command_strings[j])==0) {
-            //printf("Identified command %s type %d\n",who.argv[0],j);
-            C->type=j;
-            return 1;
-        }
-
-    }
-    return 0;
-}
-short parse(char* ptr, command_arguments &who)
-{
-    char* qtr=ptr;
-    int lg=strlen(qtr);
-    if(lg==0)
-        return 0;
-
-    char *itr=strtok(qtr," \t\n"); who.nr_arg=0;
-    while(itr!=NULL) 
-    {
-        if(strlen(itr)>0) {
-        strcpy(who.argv[who.nr_arg],itr);
-        who.nr_arg++;
-        }
-        itr=strtok(NULL, " \t\n");
-    }
-    
-    return 1;
-}
-
 void *connection_handler(void *socket_desc)
 {
 	
     int sock = *(int*)socket_desc;
-	command_arguments argcomm; command Comm;
+	//command_arguments argcomm; command Comm;
     int n;
 	char sendBuff[100], client_message[2000];
 	while((n=recv(sock,client_message,2000,0))>0)
     {
-		int code=parse(client_message,argcomm);
+        printf("[server] Received message> %s\n", client_message);
+        bzero(client_message,2000);
+    /*
+	int code=parse(client_message,argcomm);
         if(code==0) {
             strcpy(client_message,"Invalid command\n");
             Comm.type=-1;
@@ -154,7 +118,7 @@ void *connection_handler(void *socket_desc)
 		printf("[server][error] Didn't receive SQL query from client!!!");
 		// didn't receive anything > weird behaviour
 		}
-	}/**/
+	}*/
     }
     close(sock);
 
@@ -197,3 +161,42 @@ inline void open_DBs() { //flag> to add the rest DBs
 inline void close_DBs() { //flag> to add the rest DBs
   sqlite3_close(USERSDB); 
 }
+
+
+
+short assign_commandtype(command *C,command_arguments who)
+{
+    C->converted=who;
+    C->type=-1;
+    for(int j=1; j<=number_of_command_strings; j++) {
+       // printf("comparing %s with %s\n", who.argv[0], command_strings[j]);
+
+        if(strcmp(who.argv[0],command_strings[j])==0) {
+            //printf("Identified command %s type %d\n",who.argv[0],j);
+            C->type=j;
+            return 1;
+        }
+
+    }
+    return 0;
+}
+short parse(char* ptr, command_arguments &who)
+{
+    char* qtr=ptr;
+    int lg=strlen(qtr);
+    if(lg==0)
+        return 0;
+
+    char *itr=strtok(qtr," \t\n"); who.nr_arg=0;
+    while(itr!=NULL) 
+    {
+        if(strlen(itr)>0) {
+        strcpy(who.argv[who.nr_arg],itr);
+        who.nr_arg++;
+        }
+        itr=strtok(NULL, " \t\n");
+    }
+    
+    return 1;
+}
+
