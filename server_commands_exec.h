@@ -28,19 +28,18 @@ int to_int(char * str) {
   }
   return nr;
 }
+int Info(char* Mess) {
+  if(USR.auth_key==0) {
+    strcpy(Mess,"[AppError] Not authorised to access speed/loc data");
+    return 0;
+  }
+  strcpy(Mess, "1km/h in Pascani");
+  return 1;
+}
 
 int userdatacomple(void *NotUsed, int argc, char **argv, 
                     char **azColName) {
-    /*
-     "ID INT PRIMARY KEY     NOT NULL, "
-                      "NAME           TEXT    NOT NULL, "
-                      "SURNAME          TEXT     NOT NULL, "
-                      "USERNAME            VARCHAR(50)     NOT NULL, "
-                      "PASSWORD        VARCHAR(50) NOT NULL, "
-                      "PECO_SUB         INT,"
-                      "WEATHER_SUB         INT,"
-                      "SPORT_SUB         INT );";
-    */
+    
     NotUsed = 0;
     
     for (int i = 0; i < argc; i++) {
@@ -55,14 +54,15 @@ int userdatacomple(void *NotUsed, int argc, char **argv,
           case 7: USR.subscriptions[2]=to_int(argv[i]); break;
         
         }
-        //flag: for debug, remove
+        //debugflag: remove it!!!	
         printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
     }
-    print_user_data(&USR); //flag: for debug, remove
+    print_user_data(&USR); //debugflag: remove it!!!	
     printf("\n");
     
     return 0;
 }
+
 int sql_query_for_users(char * sql_stmt, info_for_user* user_data, int purpose) {
     char* errMesg = 0;
     int ret = 0;

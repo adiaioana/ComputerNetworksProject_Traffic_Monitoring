@@ -73,12 +73,12 @@ int main()
     
     printf("[client] Creating thread for handling commands... \n");
     pthread_create(&cli_thread[0],NULL, command_thread,(void *)cli_th);
-    //pthread_create(&cli_thread[1],NULL, main_thread,(void *)cli_th);
+    pthread_create(&cli_thread[1],NULL, main_thread,(void *)cli_th);
     //pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
     
     // bonus: Figure out if you should detach instead of join
     pthread_join(cli_thread[0], NULL); 
-    //pthread_joi[50]n(cli_thread[1], NULL); 
+    pthread_join(cli_thread[1], NULL); 
     //pthread_join(cli_thread[2], NULL); 
     
     pthread_exit(NULL); 
@@ -114,13 +114,20 @@ void* main_thread(void * arg) {
     while(1) {
     
       sleep(1);
-      strcpy(message_sent,"get-info");
+      strcpy(message_sent,"AUTHOR");
       comm_send_receive(sock_desc, message_sent, message_recv);
       
-      if(!strcmp(message_recv,"No data")) {
+      if(strstr(message_recv,"YES:")!=NULL) {
         pthread_mutex_lock(&print_lock);
-        printf("[client][main] Your speed and location: \n%s", message_recv);
+        strcpy(message_sent,"GINFO");
+        comm_send_receive(sock_desc, message_sent, message_recv);
         fflush(stdout);
+       // microsleep(190);
+       printf("\033[s");
+        printf("\033[2A\033[K\033[0;35m\r[client][main] Your speed and location: %s\n\033[0m", message_recv);
+        printf("\033[u");
+        fflush(stdout);
+      //  microsleep(190);
         bzero(message_recv,MAXSIZE);
         pthread_mutex_unlock(&print_lock);
       }
@@ -213,6 +220,13 @@ void* command_thread(void * arg)
 		REPORT_EVENT(sock_desc, &print_lock, sbuff, &send_lock,&print_lock); //flag: re-verify 1st lock
 	      else if(code==5) //get-events
 		GET_EVENTS(sock_desc, &print_lock, sbuff, &send_lock); //flag: re-verify 1st lock
+	}
+	else if(code==6) { //get-info: useless
+	pthread_mutex_lock(&send_lock);
+        pthread_mutex_lock(&print_lock);
+        strcpy(sbuff,server_comm_coding[6]);
+        pthread_mutex_unlock(&send_lock);
+        pthread_mutex_unlock(&print_lock);
 	}
 	else if(code==9){ //is-auth
 	pthread_mutex_lock(&send_lock);

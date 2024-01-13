@@ -74,31 +74,22 @@ inline void executioner(char *INPUT, char *OUTPUT) {
   for(int i=0; i<Inp_C.converted.nr_arg; ++i)
     strcat(OUTPUT,Inp_C.converted.argv[i]);*/
     
-  if(Inp_C.type>=1 && Inp_C.type<=3) //Authentification: REG, LOGin, LOGout
-  {
     int exec_code;
     switch(Inp_C.type) {
     case 1: exec_code=Register(&Inp_who, OUTPUT); break;   
     case 2: exec_code=LogIn(&Inp_who, OUTPUT); break;
     case 3: exec_code=LogOut(&Inp_who, OUTPUT);  break;
+    case 6: exec_code=Info(OUTPUT); break;
     case 9: exec_code=Author(OUTPUT); break;
     case 10: exec_code=0; break; //exit
+    case 8: exec_code=0; break; //unkn
     }
-    
     if(!exec_code) {
     printf("[server] Failed to execute %s",command_strings[Inp_C.type]);
     }
-  }
-  else if(Inp_C.type>=4 && Inp_C.type<=5) //Event: REVENT or GEVENT
+  if(Inp_C.type>=4 && Inp_C.type<=5) //Event: REVENT or GEVENT
   {
   
-  }
-  else if(Inp_C.type==6) //Get Info: Speed, Location
-  {
-  
-  }
-  else{
-    //flag: To be continued
   }
   
   if(strlen(OUTPUT)==0) {
