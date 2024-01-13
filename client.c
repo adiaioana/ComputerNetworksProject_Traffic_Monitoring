@@ -218,6 +218,7 @@ void* command_thread(void * arg)
             command_output(Printing_command_mess,0,&print_lock);
 	    continue;
         }
+        printf("[client][V]Sending: %s\n", sbuff);
         comm_send_receive(sock_desc,sbuff,rbuff);
         
         command_output(rbuff,1,&print_lock);

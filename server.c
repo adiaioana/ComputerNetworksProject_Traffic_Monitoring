@@ -78,9 +78,9 @@ inline void executioner(char *INPUT, char *OUTPUT) {
   {
     int exec_code;
     switch(Inp_C.type) {
-    case 1: exec_code=Register(&Inp_who); break;   
-    case 2: exec_code=LogIn(&Inp_who); break;
-    case 3: exec_code=LogOut(&Inp_who);  break;
+    case 1: exec_code=Register(&Inp_who, OUTPUT); break;   
+    case 2: exec_code=LogIn(&Inp_who, OUTPUT); break;
+    case 3: exec_code=LogOut(&Inp_who, OUTPUT);  break;
     }
     
     if(!exec_code) {
@@ -97,6 +97,10 @@ inline void executioner(char *INPUT, char *OUTPUT) {
   }
   else{
     //flag: To be continued
+  }
+  
+  if(strlen(OUTPUT)==0) {
+  strcpy(OUTPUT,"Server is dumb dumb, sorry");
   }
 }
 

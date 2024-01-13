@@ -114,17 +114,17 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	char id_user_str[20];
 	int_to_string(USR.iduser,id_user_str);
 	//printf("%d este %s\n", USR.iduser, id_user_str);
-	strcat(parameters, id_user_str); strcat (parameters,",");
-	strcat(parameters, USR.First_Name); strcat (parameters,",");
-	strcat(parameters, USR.Surname); strcat (parameters,",");
-	strcat(parameters, USR.username); strcat (parameters,",");
-	strcat(parameters, USR.password); strcat (parameters,",");
+	strcat(parameters, id_user_str); strcat (parameters,",'");
+	strcat(parameters, USR.First_Name); strcat (parameters,"','");
+	strcat(parameters, USR.Surname); strcat (parameters,"','");
+	strcat(parameters, USR.username); strcat (parameters,"','");
+	strcat(parameters, USR.password); strcat (parameters,"',");
 	strcat(parameters, "NULL"); strcat (parameters,","); // flag: to be modified for subscriptions
 	strcat(parameters, "NULL"); strcat (parameters,","); // flag: to be modified for subscriptions
 	strcat(parameters, "NULL");  // flag: to be modified for subscriptions
-	strcat(insert_query, "INSERT INTO Users VALUES('");
+	strcat(insert_query, "INSERT INTO Users VALUES(");
 	strcat(insert_query,parameters);
-	strcat(insert_query,"');");
+	strcat(insert_query,");");
 	strcat(response,insert_query);
 	
 	sprintf(simplified_args,"%s|%s|%s|%s|%s|%s|0|0|0|%s",server_comm_coding[1],id_user_str, USR.First_Name,USR.Surname,USR.username,USR.password, insert_query); /*

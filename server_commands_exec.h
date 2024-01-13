@@ -3,16 +3,8 @@
 #include<stdio.h>
 #include <string>
 #include <iostream>
-
-struct info_for_user{
-        short auth_key;
-	int iduser;	
-	char First_Name[110];
-	char Surname[110];
-	char username[110];
-	char password[110];
-	int subscriptions[3]; // flag: to be modified later
-}USR,auxuser; 
+#include "debugkitchen.h"
+info_for_user USR,auxuser; 
 
 struct command_arguments{
 	int nr_arg;
@@ -24,28 +16,96 @@ struct command{
     command_arguments converted;
 };
 sqlite3* DB; 
-
-int sql_query_for_users(char * query, info_for_user* user_data) {
-     return 1;
+int to_int(char * str) {
+  int nr=0;
+  int lg=strlen(str);
+  for(int i=0; i<lg; ++i) {
+    nr=nr*10+(str[i]-'0');
+  }
+  return nr;
 }
 
-int Register(command_arguments* Data) {
-  if(sql_query_for_users(Data->argv[Data->nr_arg-1], &auxuser))
+int userdatacomple(void *NotUsed, int argc, char **argv, 
+                    char **azColName) {
+    /*
+     "ID INT PRIMARY KEY     NOT NULL, "
+                      "NAME           TEXT    NOT NULL, "
+                      "SURNAME          TEXT     NOT NULL, "
+                      "USERNAME            VARCHAR(50)     NOT NULL, "
+                      "PASSWORD        VARCHAR(50) NOT NULL, "
+                      "PECO_SUB         INT,"
+                      "WEATHER_SUB         INT,"
+                      "SPORT_SUB         INT );";
+    */
+    NotUsed = 0;
+    
+    for (int i = 0; i < argc; i++) {
+        switch(i) {
+          case 0: USR.iduser=to_int(argv[i]); break;
+          case 1: strcpy(USR.First_Name, argv[i]); break;
+          case 2: strcpy(USR.Surname, argv[i]); break;
+          case 3: strcpy(USR.username, argv[i]); break;
+          case 4: strcpy(USR.password, argv[i]); break;
+          case 5: USR.subscriptions[0]=to_int(argv[i]); break;
+          case 6: USR.subscriptions[1]=to_int(argv[i]); break;
+          case 7: USR.subscriptions[2]=to_int(argv[i]); break;
+        
+        }
+        //flag: for debug, remove
+        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+    print_user_data(&USR); //flag: for debug, remove
+    printf("\n");
+    
+    return 0;
+}
+int sql_query_for_users(char * sql_stmt, info_for_user* user_data, int purpose) {
+    char* errMesg = 0;
+    int ret = 0;
+     
+    ret = sqlite3_exec(DB, sql_stmt, NULL, 0, &errMesg);
+    if (ret != SQLITE_OK) {
+
+        printf("Error in SQL statement: %s\n", errMesg);
+        sqlite3_free(errMesg);
+
+        return 0;
+    }
+    
+    if(purpose==1) //Log in
+    {
+      user_data->auth_key=1;
+      ret = sqlite3_exec(DB, sql_stmt, userdatacomple, 0, &errMesg);
+    }
+  
     return 1;
+}
+
+int Register(command_arguments* Data, char* Mess) {
+  if(sql_query_for_users(Data->argv[Data->nr_arg-1], &auxuser,0)){
+    strcpy(Mess,"Registered new user.");
+    return 1;
+  }
+  strcpy(Mess,"[AppError] Can't register user!");
   return 0;
 }
 
-int LogIn(command_arguments* Data) {
-  if(sql_query_for_users(Data->argv[Data->nr_arg-1],&USR)) {
+int LogIn(command_arguments* Data, char* Mess) {
+  if(sql_query_for_users(Data->argv[Data->nr_arg-1],&USR,1)) {
+    sprintf(Mess,"Logged in as: %s", USR.username);
     USR.auth_key=1;
     return 1;
   }
+  strcpy(Mess,"[AppError] Can't login! Wrong username-password combination.");
   return 0;
 }
 
-int LogOut(command_arguments* Data) {
-  if(USR.auth_key==0)
+int LogOut(command_arguments* Data, char* Mess) {
+  if(USR.auth_key==0) {
+    strcpy(Mess,"[AppError] Not logged in, can't log out!");
     return 0;
+  }
+  strcpy(Mess,"Logged out!");
   USR.auth_key=0;
   return 1;
 }
