@@ -32,12 +32,25 @@ struct info_for_user{
 	int subscriptions[3]; // flag: to be modified later
 }; 
  
-inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* response_lacatel) {
+inline void command_output(char* OUTPUT, int cd, pthread_mutex_t* print_lacatel) {
+    pthread_mutex_lock(print_lacatel);
+    printf("[client][command] %s\n", OUTPUT);
+    fflush(stdout);
+    int LG=strlen(OUTPUT);
+    if (cd)
+      bzero(OUTPUT,LG);
+    pthread_mutex_unlock(print_lacatel);
+}
+
+inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* response_lacatel, pthread_mutex_t* print_lacatel) {
+      //flag> lacatele sunt puse aiurea
         pthread_mutex_lock(response_lacatel);
 	char line[MAX_CH_ON_LINE];
+	char simplified_args[350];
 	info_for_user USR;
 	strcpy(response,server_comm_coding[1]);
 	strcat(response,"|");
+	
 	printf("\n[client][command] Your First Name: ");
 	read_line(line);
 	strcpy(USR.First_Name,line);
@@ -113,14 +126,26 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	strcat(insert_query,parameters);
 	strcat(insert_query,"');");
 	strcat(response,insert_query);
-	printf("[client][command] Sending the following response> %s\n",response);
+	
+	sprintf(simplified_args,"%s|%s|%s|%s|%s|%s|0|0|0|%s",server_comm_coding[1],id_user_str, USR.First_Name,USR.Surname,USR.username,USR.password, insert_query); /*
+	short is_logged;
+	int iduser;	
+	char First_Name[110];
+	char Surname[110];
+	char username[110];
+	char password[110];
+	int subscriptions[3];
+	*/
+	printf("[client][command] Sending the following response> %s\n",simplified_args);
 	//send(socket_desc,insert_query,strlen(insert_query),0);
         pthread_mutex_unlock(response_lacatel);
 }
 
-inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel, pthread_mutex_t* print_lacatel) {
       
+      //flag> lacatele sunt puse aiurea
 	char query[310];
+	char simplified_args[350];
 	query[0]='\0';
 	char line[MAX_CH_ON_LINE];
 	info_for_user USR;
@@ -154,6 +179,8 @@ inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacate
         }
 	
         pthread_mutex_lock(response_lacatel);
+        sprintf(simplified_args,"%s|%s|%s|%s",server_comm_coding[2],USR.username,USR.password, query);
+        
 	strcpy(response,server_comm_coding[2]);
 	strcat(response,"|");
 	strcat(response,USR.username);
@@ -174,9 +201,9 @@ void add_event(event A){
  //bonus: update_events(A.start);
 }
 
-inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel, pthread_mutex_t* print_lacatel) {
     
-      
+      //flag> lacatele sunt puse aiurea
       char line[MAX_CH_ON_LINE];
       line[0]='\0';
       memset(line, MAX_CH_ON_LINE-1, '\0');
