@@ -81,6 +81,8 @@ inline void executioner(char *INPUT, char *OUTPUT) {
     case 1: exec_code=Register(&Inp_who, OUTPUT); break;   
     case 2: exec_code=LogIn(&Inp_who, OUTPUT); break;
     case 3: exec_code=LogOut(&Inp_who, OUTPUT);  break;
+    case 9: exec_code=Author(OUTPUT); break;
+    case 10: exec_code=0; break; //exit
     }
     
     if(!exec_code) {

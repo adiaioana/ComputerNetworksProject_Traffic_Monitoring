@@ -5,6 +5,10 @@
 #include <iostream>
 #include "debugkitchen.h"
 info_for_user USR,auxuser; 
+struct event{ 
+  int code;
+  char* message;
+};
 
 struct command_arguments{
 	int nr_arg;
@@ -89,7 +93,14 @@ int Register(command_arguments* Data, char* Mess) {
   strcpy(Mess,"[AppError] Can't register user!");
   return 0;
 }
-
+int Author(char *Mess) {
+  if(USR.auth_key==0) {
+    strcpy(Mess,"NO");
+    return 0;
+  }
+  sprintf(Mess,"YES:%s",USR.username);
+  return 1;
+}
 int LogIn(command_arguments* Data, char* Mess) {
   if(sql_query_for_users(Data->argv[Data->nr_arg-1],&USR,1)) {
     sprintf(Mess,"Logged in as: %s", USR.username);

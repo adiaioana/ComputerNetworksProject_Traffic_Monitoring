@@ -2,7 +2,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <chrono>
 #include <netinet/in.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -212,8 +214,22 @@ void* command_thread(void * arg)
 	      else if(code==5) //get-events
 		GET_EVENTS(sock_desc, &print_lock, sbuff, &send_lock); //flag: re-verify 1st lock
 	}
-	else{
+	else if(code==9){ //is-auth
+	pthread_mutex_lock(&send_lock);
+        pthread_mutex_lock(&print_lock);
+        strcpy(sbuff,server_comm_coding[9]);
+        pthread_mutex_unlock(&send_lock);
+        pthread_mutex_unlock(&print_lock);
+        }
+        else if(code==10) { //exit
+          printf("Exiting app..");
+          sleep(1);
+          exit(0);
+        }
+        else {
 	    strcpy(sbuff,"UNKN");
+            printf("[client][V]Sending: %s\n", sbuff);
+            comm_send_receive(sock_desc,sbuff,rbuff);
 	    command_output(Not_solved_mess,0,&print_lock);
             command_output(Printing_command_mess,0,&print_lock);
 	    continue;
