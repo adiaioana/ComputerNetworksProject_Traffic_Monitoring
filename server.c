@@ -14,7 +14,7 @@
 void *connection_handler(void *);
 struct sockaddr_in server;
 int server_config();
-inline void executioner(char *INPUT, char *OUTPUT);
+inline void executioner(char *INPUT, char *OUTPUT, int isrep[250], info_for_user* USER);
 short server_parse(char* ptr, command_arguments &who);
 short assign_commandtype(command *C,command_arguments who);
 
@@ -22,8 +22,8 @@ int main(int argc , char *argv[])
 {
     int client_sock , c , *new_sock;
     struct sockaddr_in client;
-	int socket_desc=server_config();
-	open_DB();
+    int socket_desc=server_config();
+    open_DB();
     int optval=1; 
     setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR,&optval,sizeof(optval));
 
@@ -56,6 +56,8 @@ int main(int argc , char *argv[])
     }
     
     close_DB();
+    pthread_mutex_destroy(&event_lock);
+    pthread_mutex_destroy(&auth_lock);
     if (client_sock < 0)
     {
         perror("[server] accept failed");
@@ -64,7 +66,7 @@ int main(int argc , char *argv[])
     return 0;
 }
 
-inline void executioner(char *INPUT, char *OUTPUT) {
+inline void executioner(char *INPUT, char *OUTPUT, int isrep[250],info_for_user* USER) {
   command Inp_C;
   command_arguments Inp_who;
   server_parse(INPUT,Inp_who);
@@ -76,11 +78,11 @@ inline void executioner(char *INPUT, char *OUTPUT) {
     
     int exec_code;
     switch(Inp_C.type) {
-    case 1: exec_code=Register(&Inp_who, OUTPUT); break;   
-    case 2: exec_code=LogIn(&Inp_who, OUTPUT); break;
-    case 3: exec_code=LogOut(&Inp_who, OUTPUT);  break;
-    case 6: exec_code=Info(OUTPUT); break;
-    case 9: exec_code=Author(OUTPUT); break;
+    case 1: exec_code=Register(&Inp_who, OUTPUT, USER); break;   
+    case 2: exec_code=LogIn(&Inp_who, OUTPUT, USER); break;
+    case 3: exec_code=LogOut(&Inp_who, OUTPUT,USER);  break;
+    case 6: exec_code=Info(OUTPUT, USER); break;
+    case 9: exec_code=Author(OUTPUT, USER); break;
     case 10: exec_code=0; break; //exit
     case 8: exec_code=0; break; //unkn
     }
@@ -89,7 +91,10 @@ inline void executioner(char *INPUT, char *OUTPUT) {
     }
   if(Inp_C.type>=4 && Inp_C.type<=5) //Event: REVENT or GEVENT
   {
-    switch(Inp_C.type
+    switch(Inp_C.type) {
+    case 4: exec_code=ReportEvent(&Inp_who,OUTPUT,isrep, USER); break;
+    case 5: exec_code=GetEvents(OUTPUT,isrep, USER);break;
+    }
   }
   
   if(strlen(OUTPUT)==0) {
@@ -99,7 +104,8 @@ inline void executioner(char *INPUT, char *OUTPUT) {
 
 void *connection_handler(void *socket_desc)
 {
-	
+      info_for_user USR;
+    int isreported[250]={0};
     int sock = *(int*)socket_desc;
 	//command_arguments argcomm; command Comm;
     int n;
@@ -107,7 +113,7 @@ void *connection_handler(void *socket_desc)
 	while((n=recv(sock,client_message,2000,0))>0)
     {
         printf("[server] Received message> %s\n", client_message);
-        executioner(client_message, sendBuff);
+        executioner(client_message, sendBuff,isreported,&USR);
         send(sock,sendBuff,strlen(sendBuff),0);
         bzero(client_message,2000);
    

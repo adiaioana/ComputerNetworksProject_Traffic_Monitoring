@@ -97,18 +97,6 @@ void* main_thread(void * arg) {
     info_for_threads * cli_th=(info_for_threads *)arg;
     int sock_desc=cli_th->cli_sock;
     
-  /*  char sbuff[MAXSIZE],rbuff[MAXSIZE];
-    char mess[250];
-    printf("[client][main] Printing speed:\n");
-    while(!THE_END) {
-      sleep(1);
-      if(IS_AUTH) {
-        int nraux=rand()%120; //flag: query to server to be implemented
-        snprintf(mess,sizeof(mess),"\n[client][main] Your speed[km/h] is:%d", nraux);
-        printf("%s", mess);
-        sleep(1);
-      }
-    }*/
     char message_sent[50];
     char message_recv[MAXSIZE];
     while(1) {
@@ -154,7 +142,8 @@ void* events_thread(void * arg)
     info_for_threads * cli_th=(info_for_threads *)arg;
     char sbuff[MAXSIZE],rbuff[MAXSIZE];
     int sock_desc=cli_th->cli_sock;
-    
+    char message_sent[50];
+    char message_recv[MAXSIZE];
     while(1) {
       
       sleep(1);
