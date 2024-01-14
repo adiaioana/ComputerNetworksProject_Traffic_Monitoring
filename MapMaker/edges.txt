@@ -1,0 +1,20 @@
+1 5 Bld. Carol 1
+1 3 Str. Rapa Galben
+1 8 Str. Rari
+1 12 Str. Gavril Muzicescu
+1 6 Str. Nicolae Gane
+1 14 Bld. Indepen
+2 14 Bld. Dentei
+2 7 Str. Sarariei
+3 12 Str. Arcu
+3 4 Str. Garii
+3 9 Sos. Ar
+4 11 Str. Silvestru
+5 6 Str. General Henri Mathias Berthelot
+5 8 Str. Toma Cozma
+6 7 Str. Lascar Catargi
+8 9 Str. Pacu
+9 10 Pasaj Octav Bancila
+10 11 Sos. Nationala
+12 13 Str. Cu
+13 14 Str. Vasile Alecsandri

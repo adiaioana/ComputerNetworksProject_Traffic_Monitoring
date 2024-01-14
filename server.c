@@ -89,7 +89,7 @@ inline void executioner(char *INPUT, char *OUTPUT) {
     }
   if(Inp_C.type>=4 && Inp_C.type<=5) //Event: REVENT or GEVENT
   {
-  
+    switch(Inp_C.type
   }
   
   if(strlen(OUTPUT)==0) {

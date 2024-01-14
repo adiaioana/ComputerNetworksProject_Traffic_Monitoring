@@ -74,12 +74,12 @@ int main()
     printf("[client] Creating thread for handling commands... \n");
     pthread_create(&cli_thread[0],NULL, command_thread,(void *)cli_th);
     pthread_create(&cli_thread[1],NULL, main_thread,(void *)cli_th);
-    //pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
+    pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
     
     // bonus: Figure out if you should detach instead of join
     pthread_join(cli_thread[0], NULL); 
     pthread_join(cli_thread[1], NULL); 
-    //pthread_join(cli_thread[2], NULL); 
+    pthread_join(cli_thread[2], NULL); 
     
     pthread_exit(NULL); 
     
@@ -156,15 +156,23 @@ void* events_thread(void * arg)
     int sock_desc=cli_th->cli_sock;
     
     while(1) {
-    
+      
       sleep(1);
-      char message_sent[50];
-      char message_recv[MAXSIZE];
-      strcpy(message_sent,"get-events");
+      strcpy(message_sent,"AUTHOR");
       comm_send_receive(sock_desc, message_sent, message_recv);
       
-      if(!strcmp(message_recv,"No data")) {
+      if(strstr(message_recv,"YES:")!=NULL) {
         pthread_mutex_lock(&print_lock);
+        strcpy(message_sent,"GEVENT");
+        comm_send_receive(sock_desc, message_sent, message_recv);
+        pthread_mutex_lock(&print_lock);
+        
+        if(!strcmp(message_recv,"No data")) {
+        bzero(message_recv,MAXSIZE);
+        pthread_mutex_unlock(&print_lock);
+        continue;
+        }
+      
         printf("[client][events] New notification!\n%s", message_recv);
         fflush(stdout);
         bzero(message_recv,MAXSIZE);

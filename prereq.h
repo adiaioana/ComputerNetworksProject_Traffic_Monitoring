@@ -35,7 +35,7 @@ int notyesorno(char *str_source){
       return 0;
     return 1;
 }
-//debug?? maybe ca returneaza un pointer poate da aiurea
+//debugflag maybe ca returneaza un pointer poate da aiurea
 int Contains_Any_Chars_From(char * str_source, char *str_tokens) {
 	int how_many_tokens=strlen(str_tokens);
 	int hm=0;
