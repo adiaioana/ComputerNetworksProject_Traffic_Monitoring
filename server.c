@@ -24,6 +24,7 @@ int main(int argc , char *argv[])
     struct sockaddr_in client;
     int socket_desc=server_config();
     open_DB();
+    getmap();
     int optval=1; 
     setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR,&optval,sizeof(optval));
 

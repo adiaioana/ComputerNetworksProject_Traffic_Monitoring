@@ -1,3 +1,4 @@
+#include <time.h>
 struct info_for_user{
         short auth_key;
 	int iduser;	
@@ -15,5 +16,4 @@ void print_user_data(info_for_user* A) {
   printf("ID= %d; ", A->iduser);
   printf("Name is (F) %s (S) %s ; Username= %s & Password= %s ;\n", A->First_Name, A->Surname, A->username, A->password);
   printf("Subscriptions are (sports) %d (weather) %d (peco) %d\n", A->subscriptions[1], A->subscriptions[2], A->subscriptions[0]);
-  
 }

@@ -1,11 +1,11 @@
 #include <cstring>
 #include <sqlite3.h>
 #include<stdio.h>
-#include <vector>
 #include <string>
+#include <time.h>
+#include <cstdlib>
 #include <iostream>
 #include "debugkitchen.h"
-using std::vector;
 info_for_user auxuser; 
 struct event{ 
   int code; int id;
@@ -30,12 +30,122 @@ int to_int(char * str) {
   }
   return nr;
 }
+
+struct Street{
+  int idstreet;
+  char Name[60];
+  int SpeedLimit;
+  int Distance;
+  int lft; //intersection
+  int rgt; //intersection
+};
+int speed_of_user[300];
+clock_t begin_time_user[300];
+int begin_location_user[300];
+
+struct Map {
+  int no_locations;
+  Street Streets[50];
+  int no_nodes; //no_intersections
+  int edges[100][100]; //da pun doar (idstreet)
+} M;
+
+void string_to_int(char *p, int &opa) {
+  opa=0;
+  int lgaux=strlen(p);
+  for(int i=0; i<lgaux; ++i)
+    if(p[i]>='0' && p[i]<='9') {
+      for(int j=i; j<lgaux; ++j)
+        if(p[j]>='0' && p[j]<='9')
+          opa=opa*10+(p[j]-'0');
+        else break;
+      break;
+      }
+}
+int callback1(void *NotUsed, int argc, char **argv, 
+                    char **azColName) {
+    
+    NotUsed = 0;
+    M.no_locations++;
+    Street A;
+    for (int i = 0; i < argc; i++) {
+        if(strstr(azColName[i],"NAME")) {
+        strcpy(A.Name, argv[i]);
+        }
+        else if(strstr(azColName[i],"NAME")) {
+        strcpy(A.Name, argv[i]);
+        }
+        else if(strstr(azColName[i],"IDLEFT")) {
+        string_to_int(argv[i],A.lft);
+        }
+        else if(strstr(azColName[i],"IDRIGHT")) {
+        string_to_int(argv[i],A.rgt);
+        }
+        else if(strstr(azColName[i],"ID")) {
+        string_to_int(argv[i],A.idstreet);
+        }
+        else if(strstr(azColName[i],"DISTANCE")) {
+        string_to_int(argv[i],A.Distance);
+        }
+        else if(strstr(azColName[i],"SPEEDLIMIT")) {
+        string_to_int(argv[i],A.SpeedLimit);
+        }
+       // printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+    M.Streets[M.no_locations]=A;
+    printf("\n");
+    
+    return 0;
+}
+
+void getmap() {
+  char* messaggeError; int exitC=0;
+  
+    std::string query = "SELECT * FROM Streets;"; 
+    int rc = sqlite3_exec(DB, query.c_str(), callback1, 0, &messaggeError);
+    if (rc != SQLITE_OK ) {
+        
+        fprintf(stderr, "Failed to select data\n");
+        fprintf(stderr, "SQL error: %s\n", messaggeError);
+
+        sqlite3_free(messaggeError);
+    } 
+    
+    for(int i=1; i<=M.no_locations; ++i) {
+    int x=M.Streets[i].lft;
+    int y=M.Streets[i].rgt;
+    M.edges[x][++M.edges[x][0]]=y;
+    M.edges[y][++M.edges[y][0]]=x;
+    if(x>M.no_nodes) M.no_nodes=x;
+    if(y>M.no_nodes) M.no_nodes=y;
+    }
+}
+void upd_speed_loc(info_for_user* USR) {
+  clock_t end = clock();
+  double time_spent = (double)(end - begin_time_user[USR->iduser]) / CLOCKS_PER_SEC;
+  int new_loc, new_speed;
+  
+  new_loc=rand()%M.no_locations;
+  if((rand()%15)%7==0) {
+   new_speed=M.Streets[new_loc].SpeedLimit+(rand()%10);
+  }
+  else new_speed=M.Streets[new_loc].SpeedLimit-(rand()%10);
+  
+  speed_of_user[USR->iduser]=new_speed;
+  begin_location_user[USR->iduser]=new_loc;
+  begin_time_user[USR->iduser]=clock();
+}
+
 int Info(char* Mess, info_for_user* USR) {
   if(USR->auth_key==0) {
     strcpy(Mess,"[AppError] Not authorised to access speed/loc data");
     return 0;
   }
-  strcpy(Mess, "1km/h in Pascani");
+  //Message format is"%Speed km/h in %Location"
+  upd_speed_loc(USR);
+  if(speed_of_user[USR->iduser]<=M.Streets[begin_location_user[USR->iduser]].SpeedLimit)
+    sprintf(Mess,"%dkm/h in %s",speed_of_user[USR->iduser],M.Streets[begin_location_user[USR->iduser]].Name);
+  else sprintf(Mess,"(WARNING: SPEEDLIMIT) %dkm/h in %s",speed_of_user[USR->iduser],M.Streets[begin_location_user[USR->iduser]].Name);
   return 1;
 }
 int userdatacomplete(void *NotUsed, int argc, char **argv, 
@@ -159,6 +269,8 @@ int LogIn(command_arguments* Data, char* Mess, info_for_user* USR) {
   if(sql_query_for_users(Data->argv[Data->nr_arg-1],&auxuser,1,USR)) {
     sprintf(Mess,"Logged in as: %s", USR->username);
     USR->auth_key=1;
+    begin_time_user[USR->iduser]=clock();
+    begin_location_user[USR->iduser]=rand()%14+1;
     return 1;
   }
   strcpy(Mess,"[AppError] Can't login! Wrong username-password combination.");

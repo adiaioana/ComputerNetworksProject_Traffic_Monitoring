@@ -45,8 +45,10 @@ pthread_mutex_t send_lock=  PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t comm_lock=  PTHREAD_MUTEX_INITIALIZER;
 
 void* command_thread(void * arg);
-void* main_thread(void * arg);
+void* warnings_thread(void * arg);
 void* events_thread(void * arg);
+void* main_thread(void* arg);
+
 void  comm_send_receive(int sd,char * messsage_sent,char * message_recv);
 
 inline void command_output(char* OUTPUT, int cd,pthread_mutex_t* print_lacatel); /// i think so
@@ -73,13 +75,15 @@ int main()
     
     printf("[client] Creating thread for handling commands... \n");
     pthread_create(&cli_thread[0],NULL, command_thread,(void *)cli_th);
-    pthread_create(&cli_thread[1],NULL, main_thread,(void *)cli_th);
+   // pthread_create(&cli_thread[1],NULL, warnings_thread,(void *)cli_th);
     pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
+    //pthread_create(&cli_thread[3],NULL, main_thread,(void *)cli_th);
     
     // bonus: Figure out if you should detach instead of join
     pthread_join(cli_thread[0], NULL); 
-    pthread_join(cli_thread[1], NULL); 
+    //pthread_join(cli_thread[1], NULL); 
     pthread_join(cli_thread[2], NULL); 
+   // pthread_join(main_thread[3], NULL); 
     
     pthread_exit(NULL); 
     
@@ -92,8 +96,30 @@ int main()
     return 0;
 
 }
-void* main_thread(void * arg) { 
-//Fun fact: the Main Thread isn't the main thread, it just solves the main feature 8)
+void* main_thread(void * arg) {
+    info_for_threads * cli_th=(info_for_threads *)arg;
+    int sock_desc=cli_th->cli_sock;
+    
+    char message_sent[50];
+    char message_recv[MAXSIZE];
+    while(1) {
+    
+      sleep(1);
+      strcpy(message_sent,"AUTHOR");
+      comm_send_receive(sock_desc, message_sent, message_recv);
+      
+      if(strstr(message_recv,"YES:")!=NULL) {
+        pthread_mutex_lock(&print_lock);
+        strcpy(message_sent,"GINFO");
+        comm_send_receive(sock_desc, message_sent, message_recv);
+        fflush(stdout);
+        
+      }
+    }
+
+}
+void* warnings_thread(void * arg) { 
+//Fun fact: main thread 🤝 warnings_thread
     info_for_threads * cli_th=(info_for_threads *)arg;
     int sock_desc=cli_th->cli_sock;
     
@@ -123,8 +149,6 @@ void* main_thread(void * arg) {
       if(THE_END)
         break;
     }
-    //flag: makes no sense for the exit to be in main thread
-    printf("\n[client][main] Application exited! See you later! \n");
 }
 void  comm_send_receive(int sd,char * messsage_sent,char * message_recv)
 {
