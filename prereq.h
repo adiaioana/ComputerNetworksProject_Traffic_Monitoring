@@ -78,7 +78,7 @@ void int_to_string(int x, char *q) {
 	if(x==0) {
 	p[0]='0';
 	strcpy(q,p);
-	printf("[hihi]%d is %s[hihi]",init_val, p);
+	//printf("[hihi]%d is %s[hihi]",init_val, p);
 	return ;
 	}
 	

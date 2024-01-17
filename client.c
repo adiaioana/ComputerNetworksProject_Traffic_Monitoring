@@ -12,11 +12,10 @@
 #include <pthread.h>
 #include <time.h>
 #include <ctype.h>
-#include "string_messages.h"
 #include "reqforcommands.h"
 
 #define PORT 3000
-#define MAXSIZE 100
+#define MAXSIZE 350
 /* Note: "///" comments are meant for verification, only verified 
 functions/variables/code sections have these comments */
 
@@ -40,6 +39,7 @@ int THE_END;
 int IS_AUTH;
 
 pthread_mutex_t auth_lock=  PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t notif_lock=  PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_lock=  PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t send_lock=  PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t comm_lock=  PTHREAD_MUTEX_INITIALIZER;
@@ -75,15 +75,13 @@ int main()
     
     printf("[client] Creating thread for handling commands... \n");
     pthread_create(&cli_thread[0],NULL, command_thread,(void *)cli_th);
-   // pthread_create(&cli_thread[1],NULL, warnings_thread,(void *)cli_th);
-    pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
-    //pthread_create(&cli_thread[3],NULL, main_thread,(void *)cli_th);
+    pthread_create(&cli_thread[1],NULL, warnings_thread,(void *)cli_th);
+    //pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
     
     // bonus: Figure out if you should detach instead of join
     pthread_join(cli_thread[0], NULL); 
-    //pthread_join(cli_thread[1], NULL); 
-    pthread_join(cli_thread[2], NULL); 
-   // pthread_join(main_thread[3], NULL); 
+    pthread_join(cli_thread[1], NULL); 
+    //pthread_join(cli_thread[2], NULL); 
     
     pthread_exit(NULL); 
     
@@ -97,25 +95,6 @@ int main()
 
 }
 void* main_thread(void * arg) {
-    info_for_threads * cli_th=(info_for_threads *)arg;
-    int sock_desc=cli_th->cli_sock;
-    
-    char message_sent[50];
-    char message_recv[MAXSIZE];
-    while(1) {
-    
-      sleep(1);
-      strcpy(message_sent,"AUTHOR");
-      comm_send_receive(sock_desc, message_sent, message_recv);
-      
-      if(strstr(message_recv,"YES:")!=NULL) {
-        pthread_mutex_lock(&print_lock);
-        strcpy(message_sent,"GINFO");
-        comm_send_receive(sock_desc, message_sent, message_recv);
-        fflush(stdout);
-        
-      }
-    }
 
 }
 void* warnings_thread(void * arg) { 
@@ -132,18 +111,18 @@ void* warnings_thread(void * arg) {
       comm_send_receive(sock_desc, message_sent, message_recv);
       
       if(strstr(message_recv,"YES:")!=NULL) {
-        pthread_mutex_lock(&print_lock);
+        pthread_mutex_lock(&notif_lock);
         strcpy(message_sent,"GINFO");
         comm_send_receive(sock_desc, message_sent, message_recv);
         fflush(stdout);
-       // microsleep(190);
+       usleep(190);
        printf("\033[s");
-        printf("\033[2A\033[K\033[0;35m\r[client][main] Your speed and location: %s\n\033[0m", message_recv);
+        printf("\033[2A\033[K\033[0;36m\r[client][notif] Your speed and location: %s\n\033[0m", message_recv);
         printf("\033[u");
         fflush(stdout);
-      //  microsleep(190);
+        usleep(190);
         bzero(message_recv,MAXSIZE);
-        pthread_mutex_unlock(&print_lock);
+        pthread_mutex_unlock(&notif_lock);
       }
       
       if(THE_END)
@@ -175,21 +154,24 @@ void* events_thread(void * arg)
       comm_send_receive(sock_desc, message_sent, message_recv);
       
       if(strstr(message_recv,"YES:")!=NULL) {
-        pthread_mutex_lock(&print_lock);
         strcpy(message_sent,"GEVENT");
         comm_send_receive(sock_desc, message_sent, message_recv);
-        pthread_mutex_lock(&print_lock);
         
         if(!strcmp(message_recv,"No data")) {
         bzero(message_recv,MAXSIZE);
-        pthread_mutex_unlock(&print_lock);
         continue;
         }
-      
-        printf("[client][events] New notification!\n%s", message_recv);
+        
+        pthread_mutex_lock(&notif_lock);
+        usleep(390);
         fflush(stdout);
+        printf("\033[s");
+        printf("\033[2A\033[K\033[0;36m\r[client][event]  New notification! %s\n\033[0m", message_recv);
+        printf("\033[u");
+        fflush(stdout);
+        usleep(390);
         bzero(message_recv,MAXSIZE);
-        pthread_mutex_unlock(&print_lock);
+        pthread_mutex_unlock(&notif_lock);
       }
       
       if(THE_END)
@@ -209,10 +191,22 @@ void* command_thread(void * arg)
     char Not_solved_mess[50]="Not solved yet";
     
     command_output(Printing_command_mess,0,&print_lock);
-    while(fgets(input, MAXSIZE , stdin)!=NULL)
+    while(1)
     {
-        int code=parse(input,argcomm);
+        printf("\033[34m>>\033[0m ");
+        fflush(stdout);
+        if(!(fgets(input, MAXSIZE , stdin)!=NULL))
+          break;
         
+        int code=parse(input,argcomm);
+        if(code==11) { //help;
+          pthread_mutex_lock(&print_lock);
+          printf("[client][command] %s\n", help_comm);
+          fflush(stdout);
+          pthread_mutex_unlock(&print_lock);
+            command_output(Printing_command_mess,0,&print_lock);
+	    continue;
+        }
         if(code==0) {
             command_output(Invalid_command_mess,0,&print_lock);
             command_output(Printing_command_mess,0,&print_lock);
@@ -226,21 +220,16 @@ void* command_thread(void * arg)
         }
         // Authentification protocol
         if(code>=1 && code<=3) {
-                if(code==1) //register
-        	  REGISTRATION_FORM(sock_desc, sbuff, &send_lock,&print_lock);
-                else if(code==2) { //login
-		  LOGIN_REQUEST(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock,&print_lock);
-		//IS_AUTH=1; //debugflag: remove it!!!	
-	        }
-	        else if(code==3)
-	            LOGOUT_REQUEST(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock);
+        switch(code) {
+        case 1: REGISTRATION_FORM(sock_desc, sbuff, &send_lock,&print_lock); break;
+        case 2: LOGIN_REQUEST(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock,&print_lock);break;
+        case 3: LOGOUT_REQUEST(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock);break;
 	}
 	// Event handling
 	else if(code>=4 && code<=5) {
-	      if(code==4)//report event
-		REPORT_EVENT(sock_desc, &print_lock, sbuff, &send_lock,&print_lock); //flag: re-verify 1st lock
-	      else if(code==5) //get-events
-		GET_EVENTS(sock_desc, &print_lock, sbuff, &send_lock); //flag: re-verify 1st lock
+	switch (code) {
+	case 4: REPORT_EVENT(sock_desc, &print_lock, sbuff, &send_lock,&print_lock);break;
+	case 5:GET_EVENTS(sock_desc, &print_lock, sbuff, &send_lock);break;
 	}
 	else if(code==6) { //get-info: useless
 	pthread_mutex_lock(&send_lock);
@@ -249,6 +238,12 @@ void* command_thread(void * arg)
         pthread_mutex_unlock(&send_lock);
         pthread_mutex_unlock(&print_lock);
 	}
+	else if(code>=7 && code<=8){
+          switch(code) {
+          case 7: SUBSCRIBE_REQ(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock,&print_lock); break;
+          case 8:SUBSCR_INFO(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock); break;
+          }
+        }
 	else if(code==9){ //is-auth
 	pthread_mutex_lock(&send_lock);
         pthread_mutex_lock(&print_lock);

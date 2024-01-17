@@ -6,7 +6,6 @@
 #include <sqlite3.h> 
 #include<unistd.h>    
 #include<pthread.h> 
-#include "string_messages.h"
 #include "server_commands_exec.h"
 #include "stri.h"
 #define PORT 3000
@@ -24,6 +23,7 @@ int main(int argc , char *argv[])
     struct sockaddr_in client;
     int socket_desc=server_config();
     open_DB();
+    subscriptionstableinit();
     getmap();
     int optval=1; 
     setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR,&optval,sizeof(optval));
@@ -108,10 +108,8 @@ void *connection_handler(void *socket_desc)
       info_for_user USR;
     int isreported[250]={0};
     int sock = *(int*)socket_desc;
-	//command_arguments argcomm; command Comm;
-    int n;
-	char sendBuff[100], client_message[2000];
-	while((n=recv(sock,client_message,2000,0))>0)
+    int n; char sendBuff[100], client_message[2000];
+    while((n=recv(sock,client_message,2000,0))>0)
     {
         printf("[server] Received message> %s\n", client_message);
         executioner(client_message, sendBuff,isreported,&USR);
@@ -130,8 +128,8 @@ void *connection_handler(void *socket_desc)
     return 0;
 }
 int server_config(){
-	int socket_desc;
-	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
+    int socket_desc;
+    socket_desc = socket(AF_INET , SOCK_STREAM , 0);
     if (socket_desc == -1)
     {
         printf("[server] Could not create socket");
@@ -185,38 +183,3 @@ majorflag: What should logout send to the server? */
     
     return 1;
 }
-
-
- /*
-	int code=parse(client_message,argcomm);
-        if(code==0) {
-            strcpy(client_message,"Invalid command\n");
-            Comm.type=-1;
-           }
-        else{
-            code=assign_commandtype(&Comm,argcomm);
-            if(code==0 || Comm.type==-1) {
-                strcpy(client_message,"Invalid command\n");
-            }C791-0BCE
-            else{
-                memset(client_message,sizeof(client_message),'\0');
-            //strcpy(client_message,"Identified command: ");
-            //printf("ooooo %s\n",Comm.converted.argv[0]);
-            strcpy(client_message, first_response[Comm.type]);
-            }
-            printf("[server] Identified type %d> %s\n",Comm.type,Comm.converted.argv[0]);
-            
-            //printf("ooooo %s\n",client_message);
-        }
-	send(sock,client_message,strlen(client_message),0);
-	if(Comm.type==1 || Comm.type==2) // register: Server has to send SQL query to the database
-	{
-		if((n=recv(sock,client_message,2000,0))>0) {
-			// received SQL query
-			printf("[server] Received SQL query> %s\n", client_message);
-		}
-		else{
-		printf("[server][error] Didn't receive SQL query from client!!!");
-		// didn't receive anything > weird behaviour
-		}
-	}*/

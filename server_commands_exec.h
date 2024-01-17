@@ -39,17 +39,77 @@ struct Street{
   int lft; //intersection
   int rgt; //intersection
 };
-int speed_of_user[300];
-clock_t begin_time_user[300];
-int begin_location_user[300];
+int speed_of_user[300100];
+int progress_user[300100];
+clock_t begin_time_user[300100];
+int begin_location_user[300100];
 
 struct Map {
   int no_locations;
   Street Streets[50];
   int no_nodes; //no_intersections
-  int edges[100][100]; //da pun doar (idstreet)
+  int edges[100][100]; //da pun celelalte strazi cu care se intersect.
+  int streets_to_int[100][100]; //[i - strada][j- intersectie]=1 daca se conecteaza
 } M;
+char PecoInfo_out[300], WeatherInfo_out[300],SportsInfo_out[300];
 
+static int callbackpeco(void *NotUsed, int argc, char **argv, char **azColName){
+    memset(PecoInfo_out,sizeof(PecoInfo_out),'\0');
+    for (int i = 0; i < argc; i++) {
+        char rowy[150];
+        sprintf(rowy,"%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        strcat(PecoInfo_out,rowy);
+    }
+    printf("\n");
+    return 0;
+}
+
+static int callbackweather(void *NotUsed, int argc, char **argv, char **azColName){
+    memset(WeatherInfo_out,sizeof(WeatherInfo_out),'\0');
+    for (int i = 0; i < argc; i++) {
+        char rowy[150];
+        sprintf(rowy,"%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        strcat(WeatherInfo_out,rowy);
+    }
+    printf("\n");
+    return 0;
+}
+
+static int callbacksports(void *NotUsed, int argc, char **argv, char **azColName){
+    memset(SportsInfo_out,sizeof(PecoInfo_out),'\0');
+    for (int i = 0; i < argc; i++) {
+        char rowy[150];
+        sprintf(rowy,"%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        strcat(SportsInfo_out,rowy);
+    }
+    printf("\n");
+    return 0;
+}
+
+void PecoInfo() {
+  char *err_msg = 0;
+    const char *sql = "SELECT * FROM Peco";
+    if (sqlite3_exec(DB, sql, callbackpeco, 0, &err_msg) != SQLITE_OK ) {
+        fprintf(stderr, "Failed to select data: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+}
+void WeatherInfo() {
+char *err_msg = 0;
+    const char *sql = "SELECT * FROM Weather";
+    if (sqlite3_exec(DB, sql, callbackweather, 0, &err_msg) != SQLITE_OK ) {
+        fprintf(stderr, "Failed to select data: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+}
+void SportsInfo() {
+char *err_msg = 0;
+    const char *sql = "SELECT * FROM Sports";
+    if (sqlite3_exec(DB, sql, callbacksports, 0, &err_msg) != SQLITE_OK ) {
+        fprintf(stderr, "Failed to select data: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+}
 void string_to_int(char *p, int &opa) {
   opa=0;
   int lgaux=strlen(p);
@@ -114,22 +174,48 @@ void getmap() {
     for(int i=1; i<=M.no_locations; ++i) {
     int x=M.Streets[i].lft;
     int y=M.Streets[i].rgt;
-    M.edges[x][++M.edges[x][0]]=y;
-    M.edges[y][++M.edges[y][0]]=x;
-    if(x>M.no_nodes) M.no_nodes=x;
-    if(y>M.no_nodes) M.no_nodes=y;
+    M.streets_to_int[M.Streets[i].idstreet][x]=1;
+    M.streets_to_int[M.Streets[i].idstreet][y]=1;
     }
+    for(int i=1; i<=M.no_locations; ++i)
+       for(int j=i+1; j<=M.no_locations; ++j)
+          for(int k=1; k<=20; ++k)
+            if(M.streets_to_int[j][k]==1 && M.streets_to_int[i][k]==1) {
+              M.edges[i][++M.edges[i][0]]=j;
+              M.edges[j][++M.edges[j][0]]=i;
+            }
 }
 void upd_speed_loc(info_for_user* USR) {
   clock_t end = clock();
   double time_spent = (double)(end - begin_time_user[USR->iduser]) / CLOCKS_PER_SEC;
-  int new_loc, new_speed;
   
-  new_loc=rand()%M.no_locations;
-  if((rand()%15)%7==0) {
-   new_speed=M.Streets[new_loc].SpeedLimit+(rand()%10);
+  int new_loc, new_speed=speed_of_user[USR->iduser];
+  new_loc=begin_location_user[USR->iduser];
+  int new_dir=M.edges[begin_location_user[USR->iduser]][rand()%(M.edges[begin_location_user[USR->iduser]][0]+1)+1];
+  if(new_dir==0) {
+    new_dir=rand()%M.no_locations;
   }
-  else new_speed=M.Streets[new_loc].SpeedLimit-(rand()%10);
+  if((rand()%15)%3!=0 || new_speed<M.Streets[new_loc].SpeedLimit/2) {
+   new_speed+=(rand()%15);
+  }
+  else new_speed-=(rand()%15);
+  if (new_speed>M.Streets[new_loc].SpeedLimit) {
+    new_speed-=5;
+  }
+  if(new_speed<15)
+    new_speed= 17;
+  //progress_user[USR->iduser]+=new_speed*time_spent;
+  
+  if((rand()%15)%7==0|| progress_user[USR->iduser]>=M.Streets[begin_location_user[USR->iduser]].Distance) {
+    new_loc=new_dir;
+    if(progress_user[USR->iduser]>=M.Streets[begin_location_user[USR->iduser]].Distance)
+      progress_user[USR->iduser]-=M.Streets[begin_location_user[USR->iduser]].Distance;
+  }
+  new_loc=rand()%M.no_locations;
+  
+  if (new_speed>M.Streets[new_loc].SpeedLimit) {
+    new_speed-=5;
+  }
   
   speed_of_user[USR->iduser]=new_speed;
   begin_location_user[USR->iduser]=new_loc;
@@ -166,7 +252,7 @@ int userdatacomplete(void *NotUsed, int argc, char **argv,
         
         }
         //debugflag: remove it!!!	
-        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        //printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
     }
     //print_user_data(USR); //debugflag: remove it!!!	
     printf("\n");
@@ -204,6 +290,9 @@ int sql_query_for_users(char * sql_stmt, info_for_user* user_data, int purpose,i
 int Register(command_arguments* Data, char* Mess,info_for_user* USR) {
   if(sql_query_for_users(Data->argv[Data->nr_arg-1], &auxuser,0, USR)){
     strcpy(Mess,"Registered new user.");
+    progress_user[USR->iduser]=0;
+    speed_of_user[USR->iduser]=15;
+    begin_location_user[USR->iduser]=rand()%M.no_locations+1;
     return 1;
   }
   strcpy(Mess,"[AppError] Can't register user!");
@@ -264,7 +353,65 @@ int GetEvents(char* Mess, int isreported[250], info_for_user* USR) {
     pthread_mutex_unlock(&event_lock);
       return 1;
 }
+int ModSubscr(command_arguments* Data, char* Mess, info_for_user* USR){
+  if (USR->auth_key!=1)
+  {
+  strcpy(Mess,"[AppError] Not authorised to modify subscriptions.");
+  return 0;
+  }
+  if(sql_query_for_users(Data->argv[Data->nr_arg-1],&auxuser,1,USR)) {
+    strcpy(Mess,"Updated subscriptions.");
+    USR->subscriptions[0]=Data->argv[1][0]-'0';
+    USR->subscriptions[1]=Data->argv[2][0]-'0';
+    USR->subscriptions[2]=Data->argv[3][0]-'0';
+    return 1;
+  }
+  strcpy(Mess,"[AppError] Error handling SQL.");
+  return 0;
+}
+int DataSub(int key, char* p) {
+  if(key>2) return 0;
+  if(key<0) return 0;
+  
+  switch(key) {
+    case 0: PecoInfo(); break;
+    case 1: WeatherInfo(); break;
+    case 2: SportsInfo(); break;
+  }
+  
+  switch(key) {
+    case 0: strcpy(p,PecoInfo_out); break;
+    case 1: strcpy(p,WeatherInfo_out); break;
+    case 2: strcpy(p,SportsInfo_out); break;
+  }
+  
+  return 1;
+}
 
+int GetSubscr(command_arguments* Data, char* Mess, info_for_user* USR){
+  if (USR->auth_key!=1)
+  {
+  strcpy(Mess,"[AppError] Not authorised to get subscriptions.");
+  return 0;
+  }
+  char promt[5][220]={"News from your peco subscriptions>",
+	"News from your weather subscriptions>",
+	"News from your sports subscriptions>"};
+  char data[250];
+  for(int i=0; i<=2; ++i)
+    if(USR->subscriptions[i]) {
+    if(!DataSub(i,data)) {
+      sprintf(Mess,"[AppError] SQL in subscriptions database");
+      return 0;
+    }
+    strcat(Mess,promt[i]);
+    strcat(Mess,"\n");
+    strcat(Mess,data);
+    strcat(Mess,"\n");
+    }
+  
+  return 1;
+}
 int LogIn(command_arguments* Data, char* Mess, info_for_user* USR) {
   if(sql_query_for_users(Data->argv[Data->nr_arg-1],&auxuser,1,USR)) {
     sprintf(Mess,"Logged in as: %s", USR->username);
@@ -331,4 +478,74 @@ inline void open_DB() { //flag> to add the rest DBs
 inline void close_DB() { //flag> to add the rest DBs
   sqlite3_close(DB); 
 }
+void subscriptionstableinit() {
+ char *err_msg = 0;
+ int rc;
+const char *sqlCreateTable = "CREATE TABLE IF NOT EXISTS Peco (" \
+                                 "id INT PRIMARY KEY, " \
+                                 "name TEXT, " \
+                                 "street TEXT, " \
+                                 "benzina_price INT, " \
+                                 "motorina_price INT);";
+    
+    rc = sqlite3_exec(DB, sqlCreateTable, 0, 0, &err_msg);
+  if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_close(DB);
+    }
 
+    const char *sqlInsertData = "INSERT INTO Peco (id, name, street, benzina_price,   motorina_price) VALUES (1, 'Station A', 'Street A', 100, 90), " \
+                                "(2, 'Station B', 'Street B', 102, 92), " \
+                                "(3, 'Station C', 'Street C', 101, 91);";
+
+    rc = sqlite3_exec(DB, sqlInsertData, callback, 0, &err_msg);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error during insert: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+    PecoInfo();
+    const char *sqlCreateWeather = "CREATE TABLE IF NOT EXISTS Weather (" \
+                                   "date TEXT, " \
+                                   "morning INT, " \
+                                   "noon INT, " \
+                                   "night INT);";
+    rc = sqlite3_exec(DB, sqlCreateWeather, 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+
+    // Create Sports table
+    const char *sqlCreateSports = "CREATE TABLE IF NOT EXISTS Sports (" \
+                                  "date TEXT, " \
+                                  "upcoming_matches TEXT);";
+    rc = sqlite3_exec(DB, sqlCreateSports, 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+
+    // Insert data into Weather table
+    const char *sqlInsertWeather = "INSERT INTO Weather (date, morning, noon, night) VALUES " \
+                                   "('2024-01-18', 15, 20, 10), " \
+                                   "('2024-01-19', 16, 21, 11);";
+    rc = sqlite3_exec(DB, sqlInsertWeather, callback, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error during insert into Weather: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+
+    // Insert data into Sports table
+    const char *sqlInsertSports = "INSERT INTO Sports (date, upcoming_matches) VALUES " \
+                                  "('2024-01-18', 'Match A vs B; Match C vs D'), " \
+                                  "('2024-01-19', 'Match E vs F; Match G vs H');";
+    rc = sqlite3_exec(DB, sqlInsertSports, callback, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error during insert into Sports: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+    WeatherInfo();
+    SportsInfo();
+}

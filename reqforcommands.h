@@ -87,7 +87,7 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 		read_line(line);
 		strcpy(USR.password,line);
 	}
-	char promt[4][120]={"[client][command] Your subscription preference for weather information [Y/n]",
+	char promt[5][220]={"[client][command] Your subscription preference for weather information [Y/n]",
 	"[client][command] Your subscription preference for sports channel [Y/n]",
 	"[client][command] Your subscription preference for peco information [Y/n]"};
 	
@@ -104,7 +104,7 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	else USR.subscriptions[ind_for_promt]=0;
 	}
 	
-	USR.iduser=rand()%1000000;
+	USR.iduser=rand()%100000;
 	printf("[client][command] %d este ID", USR.iduser);
 	/* flag: something doesn't work with the send query*/
 	char parameters[510], insert_query[550];
@@ -119,15 +119,18 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	strcat(parameters, USR.Surname); strcat (parameters,"','");
 	strcat(parameters, USR.username); strcat (parameters,"','");
 	strcat(parameters, USR.password); strcat (parameters,"',");
-	strcat(parameters, "NULL"); strcat (parameters,","); // flag: to be modified for subscriptions
-	strcat(parameters, "NULL"); strcat (parameters,","); // flag: to be modified for subscriptions
-	strcat(parameters, "NULL");  // flag: to be modified for subscriptions
+	char helpie[10]="\0\0\0";
+	for(int i=0; i<=2; ++i) {
+	int_to_string(USR.subscriptions[i], helpie);
+	strcat(parameters, helpie); 
+	if(i<2) strcat (parameters,",");
+	}
 	strcat(insert_query, "INSERT INTO Users VALUES(");
 	strcat(insert_query,parameters);
 	strcat(insert_query,");");
 	strcat(response,insert_query);
 	
-	sprintf(simplified_args,"%s|%s|%s|%s|%s|%s|0|0|0|%s",server_comm_coding[1],id_user_str, USR.First_Name,USR.Surname,USR.username,USR.password, insert_query); /*
+	sprintf(simplified_args,"%s|%s|%s|%s|%s|%s|%d|%d|%d|%s",server_comm_coding[1],id_user_str, USR.First_Name,USR.Surname,USR.username,USR.password, USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2], insert_query); /*
 	short is_logged;
 	int iduser;	
 	char First_Name[110];
@@ -248,6 +251,59 @@ inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel, char* resp
       strcat(response,auxmes);
       pthread_mutex_unlock(response_lacatel);
       //add_event(auxevent);
+      pthread_mutex_unlock(lacatel);
+}
+inline void SUBSCRIBE_REQ(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+      
+      pthread_mutex_lock(lacatel);
+      pthread_mutex_lock(response_lacatel);
+      info_for_user USR;
+printf("\n[client][command] Re-enter your username for confirmation: ");
+read_line(line);
+	strcpy(USR.username,line);
+	while(strlen(USR.username)==0 || Contains_Any_Chars_From(USR.username,"!@#$%^&*()`~':;|[]<>,.+=") || !isalpha(USR.username[0]) ) {
+		printf("\n[client][command] Please re-enter username (Username has to start with a letter and the only signs allowed are - and _): ");
+		read_line(line);
+	        strcpy(USR.username,line);
+	}
+        char promt[5][220]={
+	"[client][command] Your subscription preference for peco information [Y/n]",
+	"[client][command] Your subscription preference for weather information [Y/n]",
+	"[client][command] Your subscription preference for sports channel [Y/n]"};
+	
+	// flag: to modify subscriptions
+	for(int ind_for_promt=0; ind_for_promt<3; ++ind_for_promt) {
+	printf("\n%s", promt[ind_for_promt]);
+	read_line(line);
+	while(notyesorno(line)) { //flag: notyesorno doesn't work
+	  printf("\n[client][command]Please provide a [Y/n]: ");
+	  read_line(line);
+	}
+	if(strchr(line,'Y')!=NULL or strchr(line,'y')!=NULL) 
+	  USR.subscriptions[ind_for_promt]=1;
+	else USR.subscriptions[ind_for_promt]=0;
+	}
+  char subvalues[60];
+  sprintf(subvalues,"%d|%d|%d", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2]);
+chr str[360];
+sprintf("UPDATE users SET peco_subscription = %d, weather_subscription = %d, sports_subscription = %d WHERE username = '%s';", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2],USR.username);
+      
+      
+      strcpy(response,server_comm_coding[7]);
+      strcat('|');
+      strcat(subvalues);
+      strcat('|');
+      strcat(response,str);
+      pthread_mutex_unlock(response_lacatel);
+      pthread_mutex_unlock(lacatel);
+}
+
+inline void SUBSCR_INFO(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+      
+      pthread_mutex_lock(lacatel);
+      pthread_mutex_lock(response_lacatel);
+      strcpy(response,server_comm_coding[8]);
+      pthread_mutex_unlock(response_lacatel);
       pthread_mutex_unlock(lacatel);
 }
 inline void LOGOUT_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
