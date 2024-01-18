@@ -46,7 +46,7 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
       
         pthread_mutex_lock(response_lacatel);
 	char line[MAX_CH_ON_LINE];
-	char simplified_args[350];
+	char simplified_args[1100];
 	info_for_user USR;
 	strcpy(response,server_comm_coding[1]);
 	strcat(response,"|");
@@ -274,7 +274,7 @@ read_line(line);
   char subvalues[60];
   sprintf(subvalues,"%d|%d|%d", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2]);
   char str[360];
-sprintf(str,"UPDATE users SET peco_subscription = %d, weather_subscription = %d, sports_subscription = %d WHERE username = '%s';", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2],USR.username);
+sprintf(str,"UPDATE users SET peco_sub = %d, weather_sub = %d, sport_sub = %d WHERE username = '%s';", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2],USR.username);
       
       
       strcpy(response,server_comm_coding[7]);

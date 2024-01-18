@@ -23,8 +23,9 @@ int main(int argc , char *argv[])
     struct sockaddr_in client;
     int socket_desc=server_config();
     open_DB();
-    subscriptionstableinit();
+    //subscriptionstableinit();
     getmap();
+    
     int optval=1; 
     setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR,&optval,sizeof(optval));
 
@@ -83,9 +84,10 @@ inline void executioner(char *INPUT, char *OUTPUT, int isrep[250],info_for_user*
     case 2: exec_code=LogIn(&Inp_who, OUTPUT, USER); break;
     case 3: exec_code=LogOut(&Inp_who, OUTPUT,USER);  break;
     case 6: exec_code=Info(OUTPUT, USER); break;
+    case 7: exec_code=ModSubscr(&Inp_who, OUTPUT, USER); break;
     case 9: exec_code=Author(OUTPUT, USER); break;
     case 10: exec_code=0; break; //exit
-    case 8: exec_code=0; break; //unkn
+    case 8: exec_code=GetSubscr(&Inp_who, OUTPUT, USER); break; //unkn
     }
     if(!exec_code) {
     printf("[server] Failed to execute %s",command_strings[Inp_C.type]);

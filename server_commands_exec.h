@@ -24,6 +24,7 @@ int to_int(char * str) {
   int nr=0;
   int lg=strlen(str);
   for(int i=0; i<lg; ++i) {
+    if(str[i]>='0' && str[i]<='9')
     nr=nr*10+(str[i]-'0');
   }
   return nr;
@@ -177,20 +178,21 @@ int userdatacomplete(void *NotUsed, int argc, char **argv,
                     char **azColName) {
     
     NotUsed = 0;
-    
     for (int i = 0; i < argc; i++) {
+        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
         switch(i) {
           case 0: auxuser.iduser=to_int(argv[i]); break;
           case 1: strcpy(auxuser.First_Name, argv[i]); break;
           case 2: strcpy(auxuser.Surname, argv[i]); break;
           case 3: strcpy(auxuser.username, argv[i]); break;
           case 4: strcpy(auxuser.password, argv[i]); break;
-          case 5: auxuser.subscriptions[0]=to_int(argv[i]); break;
-          case 6: auxuser.subscriptions[1]=to_int(argv[i]); break;
-          case 7: auxuser.subscriptions[2]=to_int(argv[i]); break;
+          case 5: { if(strlen(argv[i])==0) auxuser.subscriptions[0]=0; else auxuser.subscriptions[0]=to_int(argv[i]); break; }
+          case 6: { if(strlen(argv[i])==0) auxuser.subscriptions[1]=0; else auxuser.subscriptions[0]=to_int(argv[i]); break; }printf("%s\n",argv[i]);
+          case 7: { if(strlen(argv[i])==0) auxuser.subscriptions[2]=0; else auxuser.subscriptions[0]=to_int(argv[i]); break; }
         
         }
     }
+    print_user_data(&auxuser);
     printf("\n");
     
     return 0;
@@ -295,7 +297,7 @@ int ModSubscr(command_arguments* Data, char* Mess, info_for_user* USR){
   strcpy(Mess,"[AppError] Not authorised to modify subscriptions.");
   return 0;
   }
-  if(sql_query_for_users(Data->argv[Data->nr_arg-1],&auxuser,1,USR)) {
+  if(sql_query_for_users(Data->argv[Data->nr_arg-1],&auxuser,0,USR)) {
     strcpy(Mess,"Updated subscriptions.");
     USR->subscriptions[0]=Data->argv[1][0]-'0';
     USR->subscriptions[1]=Data->argv[2][0]-'0';
@@ -333,7 +335,8 @@ int GetSubscr(command_arguments* Data, char* Mess, info_for_user* USR){
   char promt[5][220]={"News from your peco subscriptions>",
 	"News from your weather subscriptions>",
 	"News from your sports subscriptions>"};
-  char data[250];
+  char data[1550];
+  memset(data,1520,'\0');
   for(int i=0; i<=2; ++i)
     if(USR->subscriptions[i]) {
     if(!DataSub(i,data)) {
@@ -350,6 +353,7 @@ int GetSubscr(command_arguments* Data, char* Mess, info_for_user* USR){
 }
 int LogIn(command_arguments* Data, char* Mess, info_for_user* USR) {
   if(sql_query_for_users(Data->argv[Data->nr_arg-1],&auxuser,1,USR)) {
+    print_user_data(USR);
     sprintf(Mess,"Logged in as: %s", USR->username);
     USR->auth_key=1;
     begin_time_user[USR->iduser]=clock();

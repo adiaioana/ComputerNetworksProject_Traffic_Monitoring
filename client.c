@@ -75,12 +75,11 @@ int main()
     printf("[client] Creating thread for handling commands... \n");
     pthread_create(&cli_thread[0],NULL, command_thread,(void *)cli_th);
     pthread_create(&cli_thread[1],NULL, warnings_thread,(void *)cli_th);
-    //pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
+    pthread_create(&cli_thread[2],NULL, events_thread,(void *)cli_th);
     
-    // bonus: Figure out if you should detach instead of join
     pthread_join(cli_thread[0], NULL); 
     pthread_join(cli_thread[1], NULL); 
-    //pthread_join(cli_thread[2], NULL); 
+    pthread_join(cli_thread[2], NULL); 
     
     pthread_exit(NULL); 
     
@@ -112,6 +111,7 @@ void* warnings_thread(void * arg) {
       if(strstr(message_recv,"YES:")!=NULL) {
         pthread_mutex_lock(&notif_lock);
         strcpy(message_sent,"GINFO");
+        bzero(message_recv,MAXSIZE);
         comm_send_receive(sock_desc, message_sent, message_recv);
         fflush(stdout);
        usleep(190);
@@ -141,7 +141,7 @@ void* events_thread(void * arg)
     info_for_threads * cli_th=(info_for_threads *)arg;
     char sbuff[MAXSIZE],rbuff[MAXSIZE];
     int sock_desc=cli_th->cli_sock;
-    char message_sent[50];
+    char message_sent[100];
     char message_recv[MAXSIZE];
     while(1) {
       
@@ -149,23 +149,29 @@ void* events_thread(void * arg)
       strcpy(message_sent,"AUTHOR");
       comm_send_receive(sock_desc, message_sent, message_recv);
       
-      if(strstr(message_recv,"YES:")!=NULL) {
+      if(strstr(message_recv,"ES:")!=NULL) {
         strcpy(message_sent,"GEVENT");
+        bzero(message_recv,MAXSIZE);
         comm_send_receive(sock_desc, message_sent, message_recv);
         
-        if(!strcmp(message_recv,"No data")) {
+        if(strstr(message_recv,"No events")!=NULL || !strstr(message_recv,"Detected")) {
         bzero(message_recv,MAXSIZE);
         continue;
         }
         
         pthread_mutex_lock(&notif_lock);
-        usleep(390);
+        usleep(190);
         fflush(stdout);
-        printf("\033[s");
-        printf("\033[2A\033[K\033[0;36m\r[client][event]  New notification! %s\n\033[0m", message_recv);
-        printf("\033[u");
+        /*printf("\033[s");
+        
+        printf("\033[2A\033[K\033[0;36m\r[client][event] notification: %s\n\033[0m", message_recv);
+        printf("\033[u");*/
+        
+        const char *yellow = "\033[0;33m";
+        const char *reset = "\033[0m";
+        printf("%s[client][event] notification: %s %s\n\n\n", yellow, message_recv, reset);
         fflush(stdout);
-        usleep(390);
+        usleep(190);
         bzero(message_recv,MAXSIZE);
         pthread_mutex_unlock(&notif_lock);
       }
@@ -193,7 +199,7 @@ void* command_thread(void * arg)
           break;
         
         int code=parse(input,argcomm);
-        if(code==11) { //help;
+        if(strstr(input,"help")!=NULL) { //help;
           pthread_mutex_lock(&print_lock);
           printf("[client][command] %s\n", help_comm);
           fflush(stdout);
