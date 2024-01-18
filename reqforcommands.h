@@ -29,7 +29,7 @@ struct info_for_user{
 	char Surname[110];
 	char username[110];
 	char password[110];
-	int subscriptions[3]; // flag: to be modified later
+	int subscriptions[3]; 
 }; 
  
 inline void command_output(char* OUTPUT, int cd, pthread_mutex_t* print_lacatel) {
@@ -43,7 +43,7 @@ inline void command_output(char* OUTPUT, int cd, pthread_mutex_t* print_lacatel)
 }
 
 inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* response_lacatel, pthread_mutex_t* print_lacatel) {
-      //flag> lacatele sunt puse aiurea
+      
         pthread_mutex_lock(response_lacatel);
 	char line[MAX_CH_ON_LINE];
 	char simplified_args[350];
@@ -91,11 +91,10 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	"[client][command] Your subscription preference for sports channel [Y/n]",
 	"[client][command] Your subscription preference for peco information [Y/n]"};
 	
-	// flag: to modify subscriptions
 	for(int ind_for_promt=0; ind_for_promt<3; ++ind_for_promt) {
 	printf("\n%s", promt[ind_for_promt]);
 	read_line(line);
-	while(notyesorno(line)) { //flag: notyesorno doesn't work
+	while(notyesorno(line)) { 
 	  printf("\n[client][command]Please provide a [Y/n]: ");
 	  read_line(line);
 	}
@@ -106,14 +105,13 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	
 	USR.iduser=rand()%100000;
 	printf("[client][command] %d este ID", USR.iduser);
-	/* flag: something doesn't work with the send query*/
+	
 	char parameters[510], insert_query[550];
 	parameters[0]='\0'; insert_query[0]='\0';
-	//memset(parameters, sizeof(parameters)-1, '\0');
-	//memset(insert_query, sizeof(insert_query)-1, '\0');
+	
 	char id_user_str[20];
 	int_to_string(USR.iduser,id_user_str);
-	//printf("%d este %s\n", USR.iduser, id_user_str);
+	
 	strcat(parameters, id_user_str); strcat (parameters,",'");
 	strcat(parameters, USR.First_Name); strcat (parameters,"','");
 	strcat(parameters, USR.Surname); strcat (parameters,"','");
@@ -130,23 +128,14 @@ inline void REGISTRATION_FORM(int socket_desc, char* response, pthread_mutex_t* 
 	strcat(insert_query,");");
 	strcat(response,insert_query);
 	
-	sprintf(simplified_args,"%s|%s|%s|%s|%s|%s|%d|%d|%d|%s",server_comm_coding[1],id_user_str, USR.First_Name,USR.Surname,USR.username,USR.password, USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2], insert_query); /*
-	short is_logged;
-	int iduser;	
-	char First_Name[110];
-	char Surname[110];
-	char username[110];
-	char password[110];
-	int subscriptions[3];
-	*/
+	sprintf(simplified_args,"%s|%s|%s|%s|%s|%s|%d|%d|%d|%s",server_comm_coding[1],id_user_str, USR.First_Name,USR.Surname,USR.username,USR.password, USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2], insert_query);
 	printf("[client][command] Sending the following response> %s\n",simplified_args);
-	//send(socket_desc,insert_query,strlen(insert_query),0);
+	
         pthread_mutex_unlock(response_lacatel);
 }
 
 inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel, pthread_mutex_t* print_lacatel) {
       
-      //flag> lacatele sunt puse aiurea
 	char query[310];
 	char simplified_args[350];
 	query[0]='\0';
@@ -191,7 +180,6 @@ inline void LOGIN_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacate
 	strcat(response,query);
         pthread_mutex_unlock(response_lacatel);
 	
-        //flag: to implement SQL query + sending to server
 }
 
 void update_events(int rightnow) {
@@ -253,11 +241,12 @@ inline void REPORT_EVENT(int socket_desc,  pthread_mutex_t * lacatel, char* resp
       //add_event(auxevent);
       pthread_mutex_unlock(lacatel);
 }
-inline void SUBSCRIBE_REQ(int socket_desc, int * token, pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel) {
+inline void SUBSCRIBE_REQ(int socket_desc,  pthread_mutex_t * lacatel, char* response, pthread_mutex_t* response_lacatel, pthread_mutex_t* print_lacatel) {
       
       pthread_mutex_lock(lacatel);
       pthread_mutex_lock(response_lacatel);
       info_for_user USR;
+      char line[110];
 printf("\n[client][command] Re-enter your username for confirmation: ");
 read_line(line);
 	strcpy(USR.username,line);
@@ -271,11 +260,10 @@ read_line(line);
 	"[client][command] Your subscription preference for weather information [Y/n]",
 	"[client][command] Your subscription preference for sports channel [Y/n]"};
 	
-	// flag: to modify subscriptions
 	for(int ind_for_promt=0; ind_for_promt<3; ++ind_for_promt) {
 	printf("\n%s", promt[ind_for_promt]);
 	read_line(line);
-	while(notyesorno(line)) { //flag: notyesorno doesn't work
+	while(notyesorno(line)) {
 	  printf("\n[client][command]Please provide a [Y/n]: ");
 	  read_line(line);
 	}
@@ -285,14 +273,14 @@ read_line(line);
 	}
   char subvalues[60];
   sprintf(subvalues,"%d|%d|%d", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2]);
-chr str[360];
-sprintf("UPDATE users SET peco_subscription = %d, weather_subscription = %d, sports_subscription = %d WHERE username = '%s';", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2],USR.username);
+  char str[360];
+sprintf(str,"UPDATE users SET peco_subscription = %d, weather_subscription = %d, sports_subscription = %d WHERE username = '%s';", USR.subscriptions[0], USR.subscriptions[1], USR.subscriptions[2],USR.username);
       
       
       strcpy(response,server_comm_coding[7]);
-      strcat('|');
-      strcat(subvalues);
-      strcat('|');
+      strcat(response,"|");
+      strcat(response,subvalues);
+      strcat(response,"|");
       strcat(response,str);
       pthread_mutex_unlock(response_lacatel);
       pthread_mutex_unlock(lacatel);
@@ -315,7 +303,7 @@ inline void LOGOUT_REQUEST(int socket_desc, int * token, pthread_mutex_t * lacat
       pthread_mutex_unlock(lacatel);
 }
 inline void GET_EVENTS(int socket_desc, pthread_mutex_t * lacatel,char* response, pthread_mutex_t* response_lacatel) {
-//flag> de pus lacatelu
+
       pthread_mutex_lock(lacatel);
       pthread_mutex_lock(response_lacatel);
       strcpy(response,server_comm_coding[5]);

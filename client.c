@@ -35,7 +35,6 @@ struct command{
 };
 
 
-int THE_END;
 int IS_AUTH;
 
 pthread_mutex_t auth_lock=  PTHREAD_MUTEX_INITIALIZER;
@@ -124,9 +123,6 @@ void* warnings_thread(void * arg) {
         bzero(message_recv,MAXSIZE);
         pthread_mutex_unlock(&notif_lock);
       }
-      
-      if(THE_END)
-        break;
     }
 }
 void  comm_send_receive(int sd,char * messsage_sent,char * message_recv)
@@ -174,8 +170,6 @@ void* events_thread(void * arg)
         pthread_mutex_unlock(&notif_lock);
       }
       
-      if(THE_END)
-        break;
     }
 }
 
@@ -225,11 +219,13 @@ void* command_thread(void * arg)
         case 2: LOGIN_REQUEST(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock,&print_lock);break;
         case 3: LOGOUT_REQUEST(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock);break;
 	}
+        }
 	// Event handling
 	else if(code>=4 && code<=5) {
 	switch (code) {
 	case 4: REPORT_EVENT(sock_desc, &print_lock, sbuff, &send_lock,&print_lock);break;
 	case 5:GET_EVENTS(sock_desc, &print_lock, sbuff, &send_lock);break;
+	}
 	}
 	else if(code==6) { //get-info: useless
 	pthread_mutex_lock(&send_lock);
@@ -240,7 +236,7 @@ void* command_thread(void * arg)
 	}
 	else if(code>=7 && code<=8){
           switch(code) {
-          case 7: SUBSCRIBE_REQ(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock,&print_lock); break;
+          case 7: SUBSCRIBE_REQ(sock_desc, &print_lock, sbuff, &send_lock,&print_lock); break;
           case 8:SUBSCR_INFO(sock_desc, &IS_AUTH, &auth_lock, sbuff, &send_lock); break;
           }
         }
@@ -273,10 +269,8 @@ void* command_thread(void * arg)
         bzero(sbuff,MAXSIZE);
         command_output(Printing_command_mess,0,&print_lock);
     }
-    THE_END=1; //flag> should have lock, it's a shared resource + makes no sense
+
 }
-
-
 int server_config() {
     int sock_desc;
     if((sock_desc = socket(AF_INET, SOCK_STREAM, 0)) < 0){
