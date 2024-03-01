@@ -1,3 +1,14 @@
-The application is designed as a Traffic Monitoring System, in which, by using a TCP client-server model, the clients could connect to the server and authenticate to gain speed data, and limitations and report traffic events. Using multithreading, the client’s communication to the server follows a TCP protocol in three concurrent threads that determine the client’s speed, traffic events reported by other clients, and the client’s input.
+# Traffic Monitoring System
 
-Skills engaged: C/C++, Data Structures, Multithreading
+The application is designed as a Traffic Monitoring System, utilizing a TCP client-server model. Clients connect to the server to authenticate, gain speed data, report traffic events, and receive limitations. Multithreading is employed for efficient communication between clients and the server.
+
+## Features
+
+- **TCP Client-Server Model:** Utilizes a TCP client-server architecture for communication.
+- **Authentication:** Clients authenticate to gain access to speed data and report traffic events.
+- **Multithreading:** Implements multithreading for concurrent communication between clients and the server.
+
+## Skills Engaged
+
+- **Programming Languages:** C/C++
+- **Concepts:** Data Structures, Multithreading
